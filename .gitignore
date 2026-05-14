@@ -1,0 +1,49 @@
+# dependencies
+node_modules
+.pnp
+.pnp.*
+
+# next
+.next
+out
+next-env.d.ts.bak
+
+# build
+build
+dist
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.local.example
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# misc
+.DS_Store
+*.pem
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# vercel / hosting
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# prisma
+prisma/*.db
+prisma/*.db-journal
+
+# IDE
+.cursorignore
+.claude/settings.local.json
+
+# OS
+Thumbs.db

@@ -1,0 +1,146 @@
+// Drop — schema Prisma
+// Fidèle à Docs/02-database.md §2. Pas de migrations pendant le hackathon : `pnpm db:push`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────────────────────────
+// USER : patron de PME
+// ────────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  business  String?  // "Plomberie Lyon Centre"
+  trade     String?  // "plombier", "coach", utilisé en context IA
+  createdAt DateTime @default(now())
+
+  drops  Drop[]
+  events DropEvent[]
+
+  @@map("users")
+}
+
+// ────────────────────────────────────────────────
+// DROP : un mini-site généré
+// ────────────────────────────────────────────────
+model Drop {
+  id     String @id @default(cuid())
+  slug   String @unique // "lent-papillon-mauve"
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Input source
+  rawInput  String    @db.Text
+  inputKind InputKind @default(TEXT)
+
+  // Output IA structuré
+  content      Json // DropContent (Zod-validated avant insert)
+  imageUrl     String? @db.Text
+  templateType TemplateType // colonne enum, jamais lue depuis le JSON
+
+  // Métadonnées dénormalisées (extraites de `content` à la création)
+  // Permettent les analytics sans charger/parser chaque JSON.
+  hasAudio        Boolean          @default(false)
+  hasInteraction  Boolean          @default(false)
+  interactionType InteractionType?
+  sectionCount    Int              @default(0)
+  modelUsed       AiModel          // modèle Anthropic effectif (trace l'incidence du fallback)
+
+  // Lifecycle
+  createdAt DateTime @default(now())
+  expiresAt DateTime // createdAt + 7 jours
+  isActive  Boolean  @default(true)
+
+  // Stats dénormalisées (mises à jour par job)
+  viewCount Int @default(0)
+  ctaCount  Int @default(0)
+
+  events DropEvent[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([expiresAt, isActive]) // pour le cron d'expiration
+  @@map("drops")
+}
+
+enum InputKind {
+  TEXT
+  VOICE
+}
+
+enum TemplateType {
+  HOW_TO
+  MANIFESTO
+  CASE_STUDY
+  QUIZ
+  ANNOUNCEMENT
+}
+
+enum InteractionType {
+  QUIZ
+  POLL
+}
+
+enum AiModel {
+  OPUS
+  SONNET
+}
+
+// ────────────────────────────────────────────────
+// EVENT : tracking minimal sans cookies
+// ────────────────────────────────────────────────
+model DropEvent {
+  id     String @id @default(cuid())
+  dropId String
+  drop   Drop   @relation(fields: [dropId], references: [id], onDelete: Cascade)
+
+  userId String? // null si visiteur anonyme
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  kind     EventKind
+  metadata Json? // { from: "linkedin", quiz_score: 3, etc. }
+
+  // Anonymisé : pas d'IP brute, hash quotidien
+  visitorHash String  @db.VarChar(64)
+  userAgent   String? @db.VarChar(200)
+
+  createdAt DateTime @default(now())
+
+  @@index([dropId, kind, createdAt])
+  @@index([visitorHash])
+  @@map("drop_events")
+}
+
+enum EventKind {
+  VIEW // page chargée
+  SCROLL_50 // 50% de la page lue
+  SCROLL_COMPLETE // bas atteint
+  INTERACTION_START // clic sur quiz/poll
+  INTERACTION_DONE // quiz/poll complété
+  CTA_CLICK // clic sur le bouton final
+  LEAD_SUBMITTED // formulaire envoyé
+}
+
+// ────────────────────────────────────────────────
+// SLUG_WORDS : pour générer des slugs lisibles
+// ────────────────────────────────────────────────
+model SlugWord {
+  id   Int      @id @default(autoincrement())
+  word String   @unique
+  kind SlugKind
+
+  @@index([kind])
+  @@map("slug_words")
+}
+
+enum SlugKind {
+  ADJECTIVE // "lent", "mauve", "carré"
+  NOUN // "papillon", "phare", "atelier"
+  COLOR // "ocre", "indigo", "ardoise"
+}

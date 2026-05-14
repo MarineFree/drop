@@ -1,0 +1,14 @@
+# Ne jamais reformater les fichiers d'environnement : leur contenu est sensible
+# (secrets, URL-encoding manuel, ordre intentionnel) et toute transformation
+# automatique peut casser le parsing ou exposer des credentials.
+*.env*
+
+# Build / generated
+.next
+node_modules
+prisma/migrations
+pnpm-lock.yaml
+
+# Lockfiles d'autres gestionnaires (au cas où)
+package-lock.json
+yarn.lock
