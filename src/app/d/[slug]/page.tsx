@@ -8,6 +8,7 @@ import { hashVisitor } from '@/lib/privacy/visitor'
 import { HowTo } from '@/components/templates/HowTo'
 import { Manifesto } from '@/components/templates/Manifesto'
 import { MinimalRender } from '@/components/templates/MinimalRender'
+import { Quiz } from '@/components/templates/Quiz'
 
 // Pas de cache statique : on lit les headers pour le tracking visiteur, donc
 // chaque hit doit toucher le serveur. ISR sera réintroduit plus tard si besoin,
@@ -30,6 +31,7 @@ interface TemplateProps {
 const TEMPLATES: Partial<Record<TemplateType, ComponentType<TemplateProps>>> = {
   HOW_TO: HowTo,
   MANIFESTO: Manifesto,
+  QUIZ: Quiz,
 }
 
 export default async function DropPage({ params }: Props) {

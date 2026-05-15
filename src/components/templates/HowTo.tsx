@@ -4,7 +4,8 @@ import type { DropContent } from '@/lib/ai/schema'
 import type { PublicDrop } from '@/lib/db/drops'
 import { Shell } from './Shell'
 import { SectionRenderer } from './sections'
-import { Quiz } from './interactions/Quiz'
+import { Poll } from './interactions/Poll'
+import { QuizWidget } from './interactions/QuizWidget'
 
 interface HowToProps {
   drop: PublicDrop
@@ -52,8 +53,9 @@ export function HowTo({ drop, viewCount, modelUsed }: HowToProps) {
         <SectionRenderer key={i} section={s} />
       ))}
 
-      {/* Interaction : Quiz si présent. Local state, pas de tracking serveur cette passe. */}
-      {content.interaction.kind === 'quiz' && <Quiz quiz={content.interaction} />}
+      {/* Interaction : Quiz ou Poll selon kind. Local state, pas de tracking serveur. */}
+      {content.interaction.kind === 'quiz' && <QuizWidget quiz={content.interaction} />}
+      {content.interaction.kind === 'poll' && <Poll poll={content.interaction} theme="cream" />}
 
       {/* CTA — bouton décoratif pour l'instant, pas de logique de click (phase 2) */}
       <section className="my-24 text-center">

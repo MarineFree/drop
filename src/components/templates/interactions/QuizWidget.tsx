@@ -4,11 +4,11 @@ import type { DropContent } from '@/lib/ai/schema'
 
 type QuizData = Extract<DropContent['interaction'], { kind: 'quiz' }>
 
-interface QuizProps {
+interface QuizWidgetProps {
   quiz: QuizData
 }
 
-export function Quiz({ quiz }: QuizProps) {
+export function QuizWidget({ quiz }: QuizWidgetProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const correctIdx = quiz.options.findIndex(o => o.is_correct)
   const showResult = selectedIdx !== null

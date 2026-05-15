@@ -67,6 +67,18 @@ Obligations actées dans `lessons.md` à exécuter avant ouverture publique du p
   - Renvoyer 401 si pas de session (pas de fallback démo)
 - [ ] Basculer le rate-limit `/api/generate` de per-IP à **per-user** (cf. note dans `lessons.md` rate limiting). Garder IP-based en couche complémentaire à seuil plus permissif pour les requêtes non-authentifiées résiduelles.
 
+## Phase 2 — Tracking interactions
+
+- [ ] **Tracker les réponses Quiz/Poll côté serveur**. Actuellement local-state seulement dans `src/components/templates/interactions/{QuizWidget,Poll}.tsx`. À faire :
+  - POST `/api/events` (à créer) avec `{ dropId, kind: 'INTERACTION_DONE', metadata: { interactionKind, selectedIdx, correct? } }`
+  - Côté `Poll.tsx` : remplacer les `FAKE_PERCENTAGES` prédéterminées par une vraie agrégation depuis `drop_events` (`groupBy` sur `metadata.selectedIdx`)
+  - Côté `QuizWidget.tsx` : tracker `correct: boolean` pour mesurer la perf des distracteurs côté patron
+  - Anti-spam : utiliser le `visitorHash` (cf. `src/lib/privacy/visitor.ts`) pour dédupliquer les réponses du même visiteur sur 24h
+
+## Polish templates
+
+- [ ] **SectionStat — rendre theme-aware**. Actuellement `text-violet` sur la value, ce qui rend la stat illisible sur les templates à thème violet (QUIZ). Adopter le pattern de `Poll.tsx` qui reçoit un prop `theme` du parent. Idéalement, élargir à tous les section atoms pour permettre une cohérence visuelle automatique.
+
 ## Cleanups (non urgents)
 
 - [ ] Retirer `getClientIdentifier` de `src/lib/ratelimit.ts` (exporté mais inutilisé — la route `/api/generate` consomme `parseClientIp` directement). Vérifier qu'aucun autre fichier ne l'importe avant suppression.
