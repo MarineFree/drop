@@ -1,12 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --color-cream: #f7f1e6;
-  --color-violet-drop: #6c4cf2;
-  --color-dark-drop: #161616;
+  /* Palette éditoriale (cf. Docs/04 §3) */
+  --color-cream: #EFE9DB;
+  --color-cream-soft: #F5F1E5;
+  --color-ink: #1a1a1a;
+  --color-ink-soft: #2A2A2A;
+  --color-violet: #5246F5;
+  --color-violet-soft: #6E63FF;
+  --color-ardoise: #3D3F47;
+  --color-rouille: #C24C2C;
+  --color-olive: #6B7A3A;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-serif: "Iowan Old Style", "Apple Garamond", Baskerville, "Times New Roman", serif;
+  /* Typographie — variables remplies par next/font (cf. fonts.ts + layout.tsx) */
+  --font-display: var(--font-display);
+  --font-display-alt: var(--font-display-alt);
+  --font-editorial: var(--font-editorial);
+  --font-mono: var(--font-mono);
+  --font-body: var(--font-body);
 }
 
 @layer base {
@@ -16,14 +27,12 @@
     text-rendering: optimizeLegibility;
   }
   body {
-    @apply bg-white text-neutral-900;
+    @apply text-ink;
   }
 }
 
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in {
-  animation: fade-in 220ms ease-out both;
+/* Grain SVG inline sur le cream — évite le rendu "plat / AI slop" (cf. Docs/04 §3) */
+.bg-cream-grain {
+  background-color: var(--color-cream);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
 }

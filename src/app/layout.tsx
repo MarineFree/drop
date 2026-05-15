@@ -1,4 +1,11 @@
 import type { Metadata } from 'next'
+import {
+  fraunces,
+  geist,
+  instrumentSerif,
+  jetbrainsMono,
+  newsreader,
+} from './fonts'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -7,10 +14,18 @@ export const metadata: Metadata = {
     "Tape une phrase ou envoie un vocal de 20s. Drop génère un mini-site partageable qui s'auto-détruit après 7 jours.",
 }
 
+const fontClassNames = [
+  instrumentSerif.variable,
+  fraunces.variable,
+  newsreader.variable,
+  jetbrainsMono.variable,
+  geist.variable,
+].join(' ')
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
-      <body>{children}</body>
+    <html lang="fr" className={fontClassNames}>
+      <body className="font-body">{children}</body>
     </html>
   )
 }
