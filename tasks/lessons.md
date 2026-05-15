@@ -6,6 +6,24 @@ Format : `[YYYY-MM-DD] | ce qui a mal tourné OU décision actée | règle pour 
 
 ## Décisions architecturales actées
 
+### [2026-05-15] | Architecture IA — Re-introduction du Zod-retry
+
+**Décision** : `generateDrop` combine deux mécanismes orthogonaux — un retry SAME-MODEL avec feedback Zod injecté dans le prompt (max 2 tentatives par modèle), PLUS le fallback modèle Opus→Sonnet existant. Borne stricte : 4 appels API worst-case (2 modèles × 2 tentatives), 2 si primary = Sonnet.
+
+**Pourquoi** : la décision précédente (supprimer `generateDropWithRetry`, ne garder que le fallback modèle) était erronée parce qu'elle confondait deux failure modes pourtant orthogonaux :
+- **Échec API transitoire** (network / 5xx / rate limit) → le fallback modèle adresse ça correctement
+- **Variance qualité** (le modèle renvoie un tool_use qui viole le Zod schema, ex. `meta.tone` > 80 chars) → le fallback modèle n'aide pas, surtout quand le primary est déjà Sonnet (pas de fallback à appeler)
+
+Confirmé par test live le 2026-05-15 : Sonnet a produit un `meta.tone` qui dépasse la borne 80 → throw immédiat, pipeline cassée, aucun drop créé. Le route a correctement émis `event: error` mais le UX est inacceptable (30s d'attente pour un échec).
+
+**Règle** : tout futur ajout de logique de fallback dans la pipeline IA doit distinguer explicitement variance qualité (retryable même modèle, avec feedback) vs échec infrastructurel (bascule modèle). Ne pas les confondre.
+
+**Trace** : `src/lib/ai/generate.ts` — boucle `for model in [primary, fallback] { for attempt in [1, 2] { ... } }`. Logs `console.warn` par retry pour mesurer la fréquence en prod et valider que la borne 2 est suffisante.
+
+**Complément** : `src/lib/ai/prompts.ts` — nouvelle section "BORNES SERRÉES" qui détaille explicitement les champs `< 100 chars` avec exemples (hook.title, text.heading, stat.value, cta.label, meta.tone). L'idée n'est pas de remplacer le Zod-retry mais de réduire la fréquence où il se déclenche. À mesurer.
+
+---
+
 ### [2026-05-14] | Modèle IA par défaut : Sonnet 4.6, pas Opus 4.7
 
 **Décision** : `DROP_GENERATION_MODEL=sonnet` en défaut. Opus 4.7 disponible en opt-in via la même variable.

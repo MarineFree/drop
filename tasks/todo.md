@@ -67,6 +67,10 @@ Obligations actées dans `lessons.md` à exécuter avant ouverture publique du p
   - Renvoyer 401 si pas de session (pas de fallback démo)
 - [ ] Basculer le rate-limit `/api/generate` de per-IP à **per-user** (cf. note dans `lessons.md` rate limiting). Garder IP-based en couche complémentaire à seuil plus permissif pour les requêtes non-authentifiées résiduelles.
 
+## Cleanups (non urgents)
+
+- [ ] Retirer `getClientIdentifier` de `src/lib/ratelimit.ts` (exporté mais inutilisé — la route `/api/generate` consomme `parseClientIp` directement). Vérifier qu'aucun autre fichier ne l'importe avant suppression.
+
 ## Risques connus
 - `zod-to-json-schema` peut produire un JSON Schema qu'Anthropic refuse. Plan B : figer le JSON schema à la main (cf. doc 01 §4).
 - SSE peut être bloqué par certains proxies Hostinger → tester en prod avant la démo.

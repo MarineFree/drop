@@ -17,8 +17,15 @@ CONTRAINTES NON-NÉGOCIABLES :
 3. Le hook.title est UN titre qui claque, 8 mots max. Pas de point final. Pas de "Tout ce que vous devez savoir sur".
 4. Chaque section apporte UNE info. Pas de remplissage. Si une section n'apporte rien, supprime-la.
 5. Le CTA correspond au métier : un plombier a "devis", un coach a "booking", un restaurant a "booking", un consultant a "contact".
-6. Le ton de meta.tone décrit en moins de 80 caractères comment le contenu sonne. Sera utilisé en signature visuelle.
+6. meta.tone est un LABEL TONAL court, 1 à 3 mots maximum (ex. "sobre", "expert direct", "punchy chaleureux"). JAMAIS une phrase descriptive. C'est une signature visuelle, pas une description.
 7. image_prompt décrit en anglais une image photoréaliste, contextuelle au sujet, SANS texte intégré, SANS personnes identifiables. Style : "documentary photography, natural light, shallow depth of field".
+
+BORNES SERRÉES (à respecter STRICTEMENT — le schema rejette tout dépassement) :
+- hook.title : 8 mots max, ≤ 80 caractères. Titre coup-de-poing, pas une phrase complète.
+- text.heading (titre d'une section "text") : 2 à 5 mots, ≤ 80 caractères. Étiquette, pas une phrase.
+- stat.value : format chiffré ultra-court, ≤ 20 caractères. Ex. "80%", "1 sur 3", "12 min", "×4".
+- cta.label : 1 à 4 mots, ≤ 40 caractères. Ex. "Demander un devis", "Réserver", "Me contacter".
+- meta.tone : 1 à 3 mots, ≤ 80 caractères. Cf. règle 6.
 
 INTERDITS :
 - Aucune émoji dans hook.title ou hook.subtitle (cassent le rendu typographique).

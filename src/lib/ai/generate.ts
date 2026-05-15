@@ -4,6 +4,7 @@ import { DropContentSchema, DropContentValidationError, type DropContent } from 
 import { SYSTEM_PROMPT } from './prompts'
 
 const MAX_TOKENS = 2048
+const MAX_ATTEMPTS_PER_MODEL = 2 // 1 attempt + 1 retry max par modèle
 
 export type ModelTag = 'opus' | 'sonnet'
 
@@ -42,14 +43,31 @@ const GENERATE_TOOL: Anthropic.Tool = {
   input_schema: dropContentJsonSchema,
 }
 
-async function callAndValidate(userInput: string, model: ModelTag): Promise<DropContent> {
+interface ZodFeedback {
+  /** Chemins violés, ex. `["meta.tone", "hook.title"]`. */
+  paths: string[]
+  /** Détails concaténés "path: message | path: message" — informatif, pas un stack. */
+  details: string
+}
+
+async function callAndValidate(
+  userInput: string,
+  model: ModelTag,
+  zodFeedback?: ZodFeedback
+): Promise<DropContent> {
+  // Si on retry après un échec Zod, on injecte les paths violés dans le message user.
+  // Pas de multi-turn (assistant turn synthétique) — un seul message user avec contexte.
+  const userMessage = zodFeedback
+    ? `${userInput}\n\n[SYSTÈME — TENTATIVE PRÉCÉDENTE INVALIDE]\nLe précédent appel à generate_drop a violé le schema sur : ${zodFeedback.paths.join(', ')}.\nDétails : ${zodFeedback.details}.\nRecommence en respectant strictement toutes les bornes min/max et max-length du schema. Sois particulièrement vigilant sur la concision des champs courts (titles, tone, labels).`
+    : userInput
+
   const response = await client.messages.create({
     model: MODEL_IDS[model],
     max_tokens: MAX_TOKENS,
     system: SYSTEM_PROMPT,
     tools: [GENERATE_TOOL],
     tool_choice: { type: 'tool', name: 'generate_drop' },
-    messages: [{ role: 'user', content: userInput }],
+    messages: [{ role: 'user', content: userMessage }],
   })
 
   const toolUse = response.content.find(block => block.type === 'tool_use')
@@ -69,26 +87,66 @@ export interface GenerateResult {
 }
 
 /**
- * Stratégie :
- *  1. Tente le modèle primaire (`DROP_GENERATION_MODEL`).
- *  2. S'il échoue ET qu'il n'est pas déjà Sonnet, fallback Sonnet (palier intermédiaire).
- *  3. Si Sonnet échoue aussi → throw l'erreur d'origine.
+ * Deux mécanismes ORTHOGONAUX :
  *
- * Pas de troisième tentative. Pas de fallback Haiku — la dégradation qualité du contenu
- * serait silencieuse.
+ *  1. **Zod-retry SAME model** : si le modèle produit un tool_use qui viole le schema,
+ *     on retry UNE FOIS sur le même modèle avec les paths violés injectés dans le prompt.
+ *     Adresse la variance qualité (un Sonnet qui rate ponctuellement la borne `meta.tone:80`).
+ *
+ *  2. **Fallback modèle** : si le modèle primaire échoue (API error OU 2 Zod fails),
+ *     on bascule sur Sonnet (palier intermédiaire). Adresse les échecs API transitoires
+ *     ET les modèles structurellement incapables de respecter le schema.
+ *
+ * Worst case en appels API : 2 modèles × 2 tentatives = 4 (primary=opus + sonnet).
+ * Si primary est déjà sonnet → max 2 appels.
+ *
+ * Borne stricte. Pas de backoff exponentiel. Pas de 3e tentative.
+ *
+ * Throw : le dernier error encontré (Zod ou API). Les `console.warn` ci-dessous tracent
+ * chaque attempt pour mesurer en prod la fréquence des retries.
  */
 export async function generateDrop(userInput: string): Promise<GenerateResult> {
   const primary = getPrimaryModel()
-  try {
-    const content = await callAndValidate(userInput, primary)
-    return { content, modelUsed: primary }
-  } catch (primaryErr) {
-    if (primary === 'sonnet') throw primaryErr
-    try {
-      const content = await callAndValidate(userInput, 'sonnet')
-      return { content, modelUsed: 'sonnet' }
-    } catch {
-      throw primaryErr
+  const models: ModelTag[] = primary === 'sonnet' ? ['sonnet'] : [primary, 'sonnet']
+
+  let lastError: unknown
+
+  for (const model of models) {
+    let zodFeedback: ZodFeedback | undefined
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt++) {
+      try {
+        const content = await callAndValidate(userInput, model, zodFeedback)
+        return { content, modelUsed: model }
+      } catch (err) {
+        lastError = err
+
+        if (err instanceof DropContentValidationError) {
+          const paths = err.zodError.issues
+            .map(i => i.path.join('.'))
+            .filter(p => p !== '')
+          console.warn(
+            `[generateDrop] zod retry on ${model}, attempt ${attempt}, paths: [${paths.join(', ')}]`
+          )
+          if (attempt === MAX_ATTEMPTS_PER_MODEL) break // give up on this model → fallback
+          zodFeedback = {
+            paths,
+            details: err.zodError.issues
+              .map(i => `${i.path.join('.')}: ${i.message}`)
+              .join(' | '),
+          }
+          continue // retry SAME model avec feedback
+        }
+
+        // API / network / unknown error : pas de retry sur ce modèle, on bascule.
+        console.warn(
+          `[generateDrop] api error on ${model}, attempt ${attempt}: ${err instanceof Error ? err.message : String(err)}`
+        )
+        break
+      }
     }
   }
+
+  if (lastError instanceof Error) throw lastError
+  throw new Error('generateDrop failed without specific error')
 }
