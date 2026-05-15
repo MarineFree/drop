@@ -1,5 +1,4 @@
 import { createHash, createHmac } from 'node:crypto'
-import type { NextRequest } from 'next/server'
 
 /**
  * Hash visiteur **anonyme** (au sens RGPD, doctrine CNIL actuelle) :
@@ -48,9 +47,15 @@ function getDailySalt(): string {
   return createHmac('sha256', seed).update(today).digest('hex')
 }
 
-export function hashVisitor(req: NextRequest, dropId: string): string {
-  const ip = parseClientIp(req.headers)
-  const ua = req.headers.get('user-agent') ?? ''
+/**
+ * Accepte un `Headers` directement (interface Web standard) plutôt qu'un `NextRequest`.
+ * Compatible à la fois avec :
+ *  - les API routes : `hashVisitor(req.headers, dropId)`
+ *  - les Server Components : `hashVisitor(await headers(), dropId)` (next/headers)
+ */
+export function hashVisitor(headers: Headers, dropId: string): string {
+  const ip = parseClientIp(headers)
+  const ua = headers.get('user-agent') ?? ''
   const dailySalt = getDailySalt()
   return createHash('sha256').update(`${ip}|${ua}|${dropId}|${dailySalt}`).digest('hex')
 }

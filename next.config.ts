@@ -7,10 +7,11 @@ const config: NextConfig = {
     typedRoutes: true,
   },
   images: {
+    // Wildcard sous-domaines fal.media : observé en prod v3, v3b, cdn, etc.
+    // Plutôt que d'énumérer, on couvre toute la famille.
     remotePatterns: [
+      { protocol: 'https', hostname: '**.fal.media' },
       { protocol: 'https', hostname: 'fal.media' },
-      { protocol: 'https', hostname: 'v3.fal.media' },
-      { protocol: 'https', hostname: 'cdn.fal.media' },
     ],
   },
 }
