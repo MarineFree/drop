@@ -5,6 +5,7 @@ import { EventKind, type AiModel, type TemplateType } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { getActiveDropBySlug, trackEvent, type PublicDrop } from '@/lib/db/drops'
 import { hashVisitor } from '@/lib/privacy/visitor'
+import { CaseStudy } from '@/components/templates/CaseStudy'
 import { HowTo } from '@/components/templates/HowTo'
 import { Manifesto } from '@/components/templates/Manifesto'
 import { MinimalRender } from '@/components/templates/MinimalRender'
@@ -32,6 +33,7 @@ const TEMPLATES: Partial<Record<TemplateType, ComponentType<TemplateProps>>> = {
   HOW_TO: HowTo,
   MANIFESTO: Manifesto,
   QUIZ: Quiz,
+  CASE_STUDY: CaseStudy,
 }
 
 export default async function DropPage({ params }: Props) {
