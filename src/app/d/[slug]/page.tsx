@@ -5,6 +5,7 @@ import { EventKind, type AiModel, type TemplateType } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { getActiveDropBySlug, trackEvent, type PublicDrop } from '@/lib/db/drops'
 import { hashVisitor } from '@/lib/privacy/visitor'
+import { Announcement } from '@/components/templates/Announcement'
 import { CaseStudy } from '@/components/templates/CaseStudy'
 import { HowTo } from '@/components/templates/HowTo'
 import { Manifesto } from '@/components/templates/Manifesto'
@@ -29,11 +30,15 @@ interface TemplateProps {
 // Registre des templates implémentés. Tout templateType absent du map tombe
 // sur MinimalRender (cf. ?? plus bas) — pattern extensible : pour ajouter
 // CASE_STUDY / QUIZ / ANNOUNCEMENT, il suffit d'importer et de référencer ici.
+// Registre des 5 templates. À ce stade, `MinimalRender` (le fallback `??`)
+// devient théoriquement inatteignable — on le garde comme filet de sécurité
+// si un nouveau TemplateType est ajouté au schema Prisma sans son template dédié.
 const TEMPLATES: Partial<Record<TemplateType, ComponentType<TemplateProps>>> = {
   HOW_TO: HowTo,
   MANIFESTO: Manifesto,
   QUIZ: Quiz,
   CASE_STUDY: CaseStudy,
+  ANNOUNCEMENT: Announcement,
 }
 
 export default async function DropPage({ params }: Props) {
