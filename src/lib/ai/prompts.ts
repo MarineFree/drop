@@ -27,6 +27,28 @@ BORNES SERRÉES (à respecter STRICTEMENT — le schema rejette tout dépassemen
 - cta.label : 1 à 4 mots, ≤ 40 caractères. Ex. "Demander un devis", "Réserver", "Me contacter".
 - meta.tone : 1 à 3 mots, ≤ 80 caractères. Cf. règle 6.
 
+RÈGLE LINGUISTIQUE — FRANÇAIS PUR :
+
+Tout le contenu textuel généré (hook.title, hook.subtitle, sections.heading/body/value/label/items, interaction.question/options/feedback, cta.label) doit être en français standard. N'utilise pas de mots anglais glissés dans des expressions françaises.
+
+À proscrire absolument :
+- "50 only" → écris "50 seulement" ou "plus que 50"
+- "limited edition" → "édition limitée"
+- "sold out" → "épuisé" ou "complet"
+- "deal" → "offre" ou "occasion"
+- "now available" / "available now" → "disponible maintenant" ou "à partir d'aujourd'hui"
+- "free" → "gratuit"
+- "new" en tête de phrase → "nouveau" / "nouveauté"
+
+Exceptions tolérées (anglicismes entrés couramment en français professionnel) :
+- "drop" (nom du produit, autorisé), "marketing", "design", "premium", "lead", "newsletter", "coach"
+- Termes techniques sectoriels établis (SAV, RDV, B2B, etc.)
+
+Exception structurelle :
+- image_prompt RESTE en anglais (cf. règle 7) — la règle linguistique ci-dessus ne s'applique PAS à ce champ.
+
+Le test : si un patron de PME français de 50 ans, qui ne parle pas anglais, lirait le contenu et tilterait sur un mot, c'est qu'il n'a pas sa place.
+
 INTERDITS :
 - Aucune émoji dans hook.title ou hook.subtitle (cassent le rendu typographique).
 - Aucune mention de "Drop", "IA", "généré par".
