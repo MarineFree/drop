@@ -79,6 +79,7 @@ Obligations actées dans `lessons.md` à exécuter avant ouverture publique du p
 
 - [ ] **SectionStat — rendre theme-aware**. Actuellement `text-violet` sur la value, ce qui rend la stat illisible sur les templates à thème violet (QUIZ). Adopter le pattern de `Poll.tsx` qui reçoit un prop `theme` du parent. Idéalement, élargir à tous les section atoms pour permettre une cohérence visuelle automatique.
 - [ ] **ANNOUNCEMENT image crop** — fal.ai génère en landscape 16:9 mais le template affiche en portrait aspect-[2/3] md:aspect-[3/4]. Sujets décentrés horizontalement seront amputés. Solutions possibles : (a) image_size adaptatif côté pipeline (portrait_3_4 spécifique pour ANNOUNCEMENT), (b) ajustement du image_prompt généré par Sonnet pour demander "subject centered, vertical composition" sur ce templateType.
+- [ ] **Image fal.ai biais culturel** — Flux Schnell n'a pas une bonne banque visuelle pour les sujets culturels spécifiquement français (kebab, charcuterie artisanale, fromages régionaux, etc.). Solutions possibles : (a) enrichir l'image_prompt côté system prompt avec des spécificateurs stylistiques contextuels, (b) upgrade vers Flux Pro pour les sujets food/cultural-specific, (c) pré-générer une banque d'images génériques par templateType en fallback si le prompt rate. Pas urgent, classifié polish démo.
 
 ## Phase 2 — Démo
 
