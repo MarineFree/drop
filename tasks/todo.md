@@ -65,7 +65,9 @@ Obligations actées dans `lessons.md` à exécuter avant ouverture publique du p
 - [x] `/new` protégé par `requireUser()` + middleware (défense en profondeur, CVE-2025-29927).
 - [ ] **Rate limit `/api/generate` — convertir de per-IP à per-user** maintenant que l'auth existe. Garder IP-based en couche complémentaire avec seuil plus permissif pour les non-authentifiés résiduels.
 - [ ] **Page `/signin` polish** — UX magic link, gestion erreurs réseau, message clair si Resend down.
-- [ ] **Onboarding post-signup** — collecter `business` et `trade` à la première connexion. Sinon eyebrow "Annonce · null" sur les ANNOUNCEMENT et perte de contexte IA. Forcer une redirection `/onboarding` si user.business ou user.trade est null.
+- [x] **Onboarding post-signup** — `/onboarding` collecte `business` + `trade` (liste des 9 trades depuis `src/lib/trades.ts`). `/new` redirige vers `/onboarding` si l'un des deux est null. Anti-double-onboarding : si déjà rempli, `/onboarding` redirige vers `/new`. Note : les templates avaient déjà un fallback `?? 'Anonyme'` — pas de "null" littéral observé, mon hypothèse précédente sur le crash visuel était incorrecte.
+- [ ] **Page /settings ou /dashboard/profile** — permettre à un user de modifier `business` et `trade` après l'onboarding initial. Pour l'instant pas d'UI : seul l'API `POST /api/user/profile` permet la modif.
+- [ ] **Trade → system prompt IA** — passer `user.trade` (artisans / coaching / restauration / etc.) dans le prompt à Sonnet pour calibrer le ton et le format. Actuellement le champ est stocké mais non utilisé côté génération.
 
 ## Phase 2 — Tracking interactions
 

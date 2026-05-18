@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import { GenerateClient } from '@/components/creator/GenerateClient'
 import { requireUser } from '@/lib/auth-server'
+import { prisma } from '@/lib/db'
 
 export const metadata: Metadata = {
   title: 'Drop — nouveau drop',
@@ -10,8 +12,15 @@ export const metadata: Metadata = {
 // `requireUser()` est la VRAIE ceinture de sécurité : le middleware Next redirige
 // vite côté browser (UX), mais peut être bypass (CVE-2025-29927). Ici on valide
 // la session côté serveur avant de rendre quoi que ce soit.
+// On vérifie aussi que l'onboarding business/trade est fait — sinon le contenu
+// IA généré n'a pas de contexte métier et les eyebrows tombent sur "Anonyme".
 export default async function NewDropPage() {
-  await requireUser()
+  const sessionUser = await requireUser()
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: sessionUser.id },
+    select: { business: true, trade: true },
+  })
+  if (!user.business || !user.trade) redirect('/onboarding')
 
   return (
     <div className="min-h-screen bg-cream-grain font-body text-ink antialiased">
