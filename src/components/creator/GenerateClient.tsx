@@ -1,9 +1,9 @@
 'use client'
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { Route } from 'next'
 import { useRouter } from 'next/navigation'
 
-type Phase = 'idle' | 'streaming' | 'done' | 'error'
+type Phase = 'idle' | 'uploading' | 'streaming' | 'done' | 'error'
 
 interface StatusStep {
   step: string
@@ -20,12 +20,20 @@ interface ErrorPayload {
 const MIN_LEN = 10
 const MAX_LEN = 2000
 
+// Doivent matcher `/api/upload-image` côté serveur.
+const MAX_FILE_SIZE = 4 * 1024 * 1024
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
 const PLACEHOLDER =
   'Décris ton idée en une phrase. Drop choisira le format qui colle.'
 
 export function GenerateClient() {
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [input, setInput] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [filePreview, setFilePreview] = useState<string | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>('idle')
   const [steps, setSteps] = useState<StatusStep[]>([])
   const [error, setError] = useState<ErrorPayload | null>(null)
@@ -33,20 +41,84 @@ export function GenerateClient() {
   const inputLen = input.trim().length
   const canSubmit = inputLen >= MIN_LEN && inputLen <= MAX_LEN
 
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    setFileError(null)
+    const f = e.target.files?.[0]
+    if (!f) return
+
+    if (!ALLOWED_FILE_TYPES.includes(f.type)) {
+      setFileError('Format non supporté (JPEG, PNG ou WebP).')
+      e.target.value = ''
+      return
+    }
+    if (f.size > MAX_FILE_SIZE) {
+      setFileError('Fichier trop volumineux (max 4 Mo).')
+      e.target.value = ''
+      return
+    }
+
+    setFile(f)
+    // Crée une URL locale pour la preview thumbnail
+    const url = URL.createObjectURL(f)
+    if (filePreview) URL.revokeObjectURL(filePreview)
+    setFilePreview(url)
+  }
+
+  function handleRemoveFile() {
+    if (filePreview) URL.revokeObjectURL(filePreview)
+    setFile(null)
+    setFilePreview(null)
+    setFileError(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  async function uploadFile(f: File): Promise<string> {
+    const formData = new FormData()
+    formData.append('file', f)
+    const res = await fetch('/api/upload-image', {
+      method: 'POST',
+      body: formData,
+    })
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null
+      throw new Error(data?.error ?? `Upload failed (HTTP ${res.status})`)
+    }
+    const data = (await res.json()) as { url: string }
+    return data.url
+  }
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!canSubmit) return
 
-    setPhase('streaming')
     setSteps([])
     setError(null)
+
+    // 1. Upload de la photo (si présente) AVANT le stream SSE
+    let uploadedImageUrl: string | undefined
+    if (file) {
+      setPhase('uploading')
+      try {
+        uploadedImageUrl = await uploadFile(file)
+      } catch (err) {
+        setError({ message: err instanceof Error ? err.message : 'Upload échoué.' })
+        setPhase('error')
+        return
+      }
+    }
+
+    // 2. Stream SSE generate
+    setPhase('streaming')
 
     let res: Response
     try {
       res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rawInput: input.trim() }),
+        body: JSON.stringify({
+          rawInput: input.trim(),
+          ...(uploadedImageUrl ? { imageUrl: uploadedImageUrl } : {}),
+        }),
       })
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : 'Réseau indisponible' })
@@ -122,10 +194,11 @@ export function GenerateClient() {
     setPhase('idle')
     setSteps([])
     setError(null)
-    // input préservé volontairement — l'utilisateur peut corriger sans tout retaper.
+    // input + file préservés volontairement — l'utilisateur peut corriger sans tout retaper.
   }
 
-  const formDisabled = phase === 'streaming' || phase === 'done'
+  const formDisabled =
+    phase === 'uploading' || phase === 'streaming' || phase === 'done'
 
   return (
     <div className="space-y-10">
@@ -162,6 +235,58 @@ export function GenerateClient() {
           </span>
         </div>
 
+        {/* Photo upload (optionnel) — discret sous la textarea */}
+        <div className="mt-4 space-y-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleFileChange}
+            disabled={formDisabled}
+            className="hidden"
+          />
+          {!file ? (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={formDisabled}
+              className="font-mono text-[11px] uppercase tracking-[0.2em] opacity-60 transition hover:opacity-100 disabled:opacity-30"
+            >
+              + Ajouter ma photo (optionnel)
+            </button>
+          ) : (
+            <div className="flex items-center gap-4 rounded-sm border border-current/15 bg-current/5 p-3">
+              {/* Preview thumbnail — URL.createObjectURL local, pas un fetch.
+                  next/image attend des hosts whitelist → on utilise <img> ici. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={filePreview ?? ''}
+                alt=""
+                className="h-12 w-16 flex-shrink-0 object-cover"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-mono text-xs">{file.name}</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.15em] opacity-50">
+                  {(file.size / 1024).toFixed(0)} ko · sera utilisée à la place de l&apos;IA
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveFile}
+                disabled={formDisabled}
+                className="font-mono text-[10px] uppercase tracking-[0.2em] text-rouille opacity-70 transition hover:opacity-100"
+              >
+                Retirer
+              </button>
+            </div>
+          )}
+          {fileError && (
+            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-rouille">
+              {fileError}
+            </p>
+          )}
+        </div>
+
         <div className="mt-6 flex flex-col items-start gap-3">
           <button
             type="submit"
@@ -179,6 +304,12 @@ export function GenerateClient() {
       {/* Logs / résultat / erreur — toute la zone "post-submit" */}
       {phase !== 'idle' && (
         <section className="space-y-4">
+          {phase === 'uploading' && (
+            <p className="animate-fade-in font-mono text-sm">
+              <span className="text-violet">→</span> Téléversement de la photo…
+            </p>
+          )}
+
           {phase === 'streaming' && steps.length === 0 && (
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] opacity-50">
               La génération prend généralement 30 à 60 secondes.

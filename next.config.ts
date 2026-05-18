@@ -7,11 +7,12 @@ const config: NextConfig = {
     typedRoutes: true,
   },
   images: {
-    // Wildcard sous-domaines fal.media : observé en prod v3, v3b, cdn, etc.
-    // Plutôt que d'énumérer, on couvre toute la famille.
+    // Wildcard sous-domaines fal.media (v3, v3b, cdn, etc.) + Vercel Blob Storage
+    // pour les photos uploadées par les patrons.
     remotePatterns: [
       { protocol: 'https', hostname: '**.fal.media' },
       { protocol: 'https', hostname: 'fal.media' },
+      { protocol: 'https', hostname: '**.public.blob.vercel-storage.com' },
     ],
   },
 }

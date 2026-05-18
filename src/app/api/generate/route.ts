@@ -13,6 +13,9 @@ export const maxDuration = 120 // 2 min — couvre Claude Opus dans le pire cas
 
 const GenerateRequestSchema = z.object({
   rawInput: z.string().min(10).max(2000),
+  // Photo uploadée optionnelle : si fournie, skip fal.ai et utilise cette URL.
+  // Doit être une URL Vercel Blob (validation soft — on a déjà filtré côté /api/upload-image).
+  imageUrl: z.string().url().optional(),
 })
 
 type GenerateRequest = z.infer<typeof GenerateRequestSchema>
@@ -94,11 +97,18 @@ export async function POST(req: NextRequest) {
           modelUsed,
         })
 
-        // ── Étape 2 : génération de l'image via fal.ai
+        // ── Étape 2 : image — si une URL uploadée est fournie, on skip fal.ai
         currentStep = 'imaging'
-        send('status', { step: 'imaging', label: "Génération de l'image…" })
-        const imageUrl = await generateImage(content.image_prompt)
-        send('status', { step: 'imaged', label: 'Image prête.' })
+        let imageUrl: string
+        if (body.imageUrl) {
+          send('status', { step: 'imaging', label: 'Utilisation de ta photo…' })
+          imageUrl = body.imageUrl
+          send('status', { step: 'imaged', label: 'Photo prête.' })
+        } else {
+          send('status', { step: 'imaging', label: "Génération de l'image…" })
+          imageUrl = await generateImage(content.image_prompt)
+          send('status', { step: 'imaged', label: 'Image prête.' })
+        }
 
         // ── Étape 3 : persistance + slug unique (P2002 retry interne)
         currentStep = 'saving'
