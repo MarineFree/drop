@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { Route } from 'next'
 import { SignOutButton } from './SignOutButton'
 
 interface DashboardHeaderProps {
@@ -20,6 +21,12 @@ export function DashboardHeader({ business }: DashboardHeaderProps) {
           <span className="font-mono text-[11px] uppercase tracking-[0.15em] opacity-50">
             {business}
           </span>
+          <Link
+            href={'/dashboard/settings' as Route}
+            className="font-mono text-[11px] uppercase tracking-[0.15em] opacity-70 hover:opacity-100"
+          >
+            Réglages
+          </Link>
           <SignOutButton />
         </div>
       </div>

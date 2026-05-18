@@ -2,6 +2,7 @@ import Image from 'next/image'
 import type { AiModel } from '@prisma/client'
 import type { DropContent } from '@/lib/ai/schema'
 import type { PublicDrop } from '@/lib/db/drops'
+import { CtaButton } from './CtaButton'
 import { Shell } from './Shell'
 import { SectionRenderer } from './sections'
 
@@ -57,15 +58,13 @@ export function CaseStudy({ drop, viewCount, modelUsed }: CaseStudyProps) {
           content.interaction.kind !== 'none', on ne rend rien : le format
           étude de cas est purement narratif. */}
 
-      {/* CTA — même style que HowTo (cream theme, ink button) */}
-      <section className="my-24 text-center">
-        <button
-          type="button"
-          className="inline-block rounded-sm bg-ink px-10 py-5 font-mono text-xs uppercase tracking-[0.2em] text-cream"
-        >
-          {content.cta.label}
-        </button>
-      </section>
+      {/* CTA — même style que HowTo (cream theme, ink button). Caché si pas d'URL. */}
+      <CtaButton
+        slug={drop.slug}
+        ctaUrl={drop.ctaUrl}
+        label={content.cta.label}
+        variant="dark"
+      />
 
       {/* Footer interne meta — même shape que les autres templates */}
       <footer className="mt-12 space-y-1 border-t border-current/20 pt-6 font-mono text-xs opacity-50">

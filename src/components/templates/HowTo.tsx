@@ -2,6 +2,7 @@ import Image from 'next/image'
 import type { AiModel } from '@prisma/client'
 import type { DropContent } from '@/lib/ai/schema'
 import type { PublicDrop } from '@/lib/db/drops'
+import { CtaButton } from './CtaButton'
 import { Shell } from './Shell'
 import { SectionRenderer } from './sections'
 import { Poll } from './interactions/Poll'
@@ -57,15 +58,14 @@ export function HowTo({ drop, viewCount, modelUsed }: HowToProps) {
       {content.interaction.kind === 'quiz' && <QuizWidget quiz={content.interaction} />}
       {content.interaction.kind === 'poll' && <Poll poll={content.interaction} theme="cream" />}
 
-      {/* CTA — bouton décoratif pour l'instant, pas de logique de click (phase 2) */}
-      <section className="my-24 text-center">
-        <button
-          type="button"
-          className="inline-block rounded-sm bg-ink px-10 py-5 font-mono text-xs uppercase tracking-[0.2em] text-cream"
-        >
-          {content.cta.label}
-        </button>
-      </section>
+      {/* CTA — bouton cliquable qui passe par /api/d/<slug>/cta pour tracker
+          puis rediriger vers `drop.ctaUrl`. Caché si `ctaUrl` est null. */}
+      <CtaButton
+        slug={drop.slug}
+        ctaUrl={drop.ctaUrl}
+        label={content.cta.label}
+        variant="dark"
+      />
 
       {/* Footer interne : meta debug pour la phase actuelle (date, vues, modèle).
           Le Shell a son propre footer de branding par-dessous. */}

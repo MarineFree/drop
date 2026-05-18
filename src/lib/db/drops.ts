@@ -60,6 +60,8 @@ export interface CreateDropInput {
   imageUrl: string | null
   /** Modèle effectif renvoyé par `generateDrop()` — persisté pour analytics fallback. */
   modelUsed: ModelTag
+  /** URL de redirection du bouton CTA (déjà validée `.url()` côté route). `null` = bouton caché. */
+  ctaUrl: string | null
 }
 
 function isSlugCollision(err: unknown): boolean {
@@ -92,6 +94,7 @@ export async function createDrop(input: CreateDropInput): Promise<Drop> {
           inputKind: input.inputKind,
           content: input.content as unknown as Prisma.InputJsonValue,
           imageUrl: input.imageUrl,
+          ctaUrl: input.ctaUrl,
           templateType,
           hasAudio,
           hasInteraction: metadata.hasInteraction,
@@ -120,6 +123,7 @@ const PUBLIC_DROP_SELECT = {
   slug: true,
   content: true,
   imageUrl: true,
+  ctaUrl: true,
   templateType: true,
   expiresAt: true,
   createdAt: true,

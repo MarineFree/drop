@@ -27,19 +27,40 @@ const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const PLACEHOLDER =
   'Décris ton idée en une phrase. Drop choisira le format qui colle.'
 
-export function GenerateClient() {
+// Validation URL : on accepte vide (= utilise le défaut du user / null) ou
+// une URL http(s) valide. Pas de regex complexe — on délègue à URL().
+function isValidCtaUrl(raw: string): boolean {
+  const trimmed = raw.trim()
+  if (trimmed === '') return true
+  try {
+    const u = new URL(trimmed)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+interface GenerateClientProps {
+  /** URL CTA par défaut du user (depuis /dashboard/settings). `null` si jamais réglé. */
+  defaultCtaUrl: string | null
+}
+
+export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [input, setInput] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState<string | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
+  // Pre-rempli avec le défaut user — éditable. Vide = pas d'override.
+  const [ctaUrl, setCtaUrl] = useState(defaultCtaUrl ?? '')
   const [phase, setPhase] = useState<Phase>('idle')
   const [steps, setSteps] = useState<StatusStep[]>([])
   const [error, setError] = useState<ErrorPayload | null>(null)
 
   const inputLen = input.trim().length
-  const canSubmit = inputLen >= MIN_LEN && inputLen <= MAX_LEN
+  const ctaUrlValid = isValidCtaUrl(ctaUrl)
+  const canSubmit = inputLen >= MIN_LEN && inputLen <= MAX_LEN && ctaUrlValid
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     setFileError(null)
@@ -112,12 +133,18 @@ export function GenerateClient() {
 
     let res: Response
     try {
+      // Le champ ctaUrl est WYSIWYG : ce qui est dedans (pré-rempli du défaut user
+      // ou modifié) est ce qui sera persisté. Vide = pas de bouton CTA sur ce drop.
+      const trimmedCta = ctaUrl.trim()
+      const ctaToSend = trimmedCta !== '' ? trimmedCta : undefined
+
       res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rawInput: input.trim(),
           ...(uploadedImageUrl ? { imageUrl: uploadedImageUrl } : {}),
+          ...(ctaToSend ? { ctaUrl: ctaToSend } : {}),
         }),
       })
     } catch (err) {
@@ -285,6 +312,37 @@ export function GenerateClient() {
               {fileError}
             </p>
           )}
+        </div>
+
+        {/* URL du bouton CTA (optionnel) — pré-rempli avec le défaut user
+            (cf. /dashboard/settings). Vide = pas de bouton sur ce drop. */}
+        <div className="mt-6 space-y-2">
+          <label
+            htmlFor="cta-url"
+            className="block font-mono text-[11px] uppercase tracking-[0.2em] opacity-60"
+          >
+            Lien du bouton (optionnel)
+          </label>
+          <input
+            id="cta-url"
+            type="url"
+            inputMode="url"
+            value={ctaUrl}
+            onChange={e => setCtaUrl(e.target.value)}
+            placeholder="https://ton-site.fr/contact"
+            disabled={formDisabled}
+            className="w-full rounded-sm border border-current/20 bg-transparent p-3 font-body text-sm placeholder:opacity-40 focus:border-current focus:outline-none"
+          />
+          {!ctaUrlValid && (
+            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-rouille">
+              URL invalide (http(s) uniquement).
+            </p>
+          )}
+          <p className="font-mono text-[10px] uppercase tracking-[0.15em] opacity-50">
+            {ctaUrl.trim() === ''
+              ? 'Sans lien, le bouton CTA ne sera pas affiché.'
+              : 'Le bouton du drop renverra vers cette URL.'}
+          </p>
         </div>
 
         <div className="mt-6 flex flex-col items-start gap-3">

@@ -16,6 +16,14 @@ const GenerateRequestSchema = z.object({
   // Photo uploadée optionnelle : si fournie, skip fal.ai et utilise cette URL.
   // Doit être une URL Vercel Blob (validation soft — on a déjà filtré côté /api/upload-image).
   imageUrl: z.string().url().optional(),
+  // URL CTA optionnelle. Si fournie, override le `User.ctaUrl` par défaut.
+  // Refuse les schémes autres que http(s) : la route de redirect re-vérifie aussi
+  // (defense-in-depth contre javascript:/data:).
+  ctaUrl: z
+    .string()
+    .url()
+    .refine(u => /^https?:\/\//i.test(u), 'http(s) only')
+    .optional(),
 })
 
 type GenerateRequest = z.infer<typeof GenerateRequestSchema>
@@ -113,6 +121,10 @@ export async function POST(req: NextRequest) {
         // ── Étape 3 : persistance + slug unique (P2002 retry interne)
         currentStep = 'saving'
         send('status', { step: 'saving', label: 'Publication du Drop…' })
+
+        // `ctaUrl` est WYSIWYG : le form a déjà pré-rempli avec `User.ctaUrl` côté
+        // /new, donc ce qui arrive ici est l'intention finale du patron (champ vide
+        // = pas de bouton). Pas de re-lookup côté route.
         const drop = await createDrop({
           userId: user.id,
           rawInput: body.rawInput,
@@ -120,6 +132,7 @@ export async function POST(req: NextRequest) {
           content,
           imageUrl,
           modelUsed,
+          ctaUrl: body.ctaUrl ?? null,
         })
 
         send('done', { slug: drop.slug, url: `/d/${drop.slug}` })

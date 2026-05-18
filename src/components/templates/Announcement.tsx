@@ -2,6 +2,7 @@ import Image from 'next/image'
 import type { AiModel } from '@prisma/client'
 import type { DropContent } from '@/lib/ai/schema'
 import type { PublicDrop } from '@/lib/db/drops'
+import { CtaButton } from './CtaButton'
 import { Shell } from './Shell'
 import { SectionRenderer } from './sections'
 
@@ -74,15 +75,13 @@ export function Announcement({ drop, viewCount, modelUsed }: AnnouncementProps) 
 
       {/* Pas d'interaction widget — format affiche transactionnelle, comme CASE_STUDY */}
 
-      {/* CTA */}
-      <section className="my-24 text-center">
-        <button
-          type="button"
-          className="inline-block rounded-sm bg-ink px-10 py-5 font-mono text-xs uppercase tracking-[0.2em] text-cream"
-        >
-          {content.cta.label}
-        </button>
-      </section>
+      {/* CTA — caché si pas d'URL configurée par le patron */}
+      <CtaButton
+        slug={drop.slug}
+        ctaUrl={drop.ctaUrl}
+        label={content.cta.label}
+        variant="dark"
+      />
 
       {/* Footer interne meta — shape commune aux autres templates */}
       <footer className="mt-12 space-y-1 border-t border-current/20 pt-6 font-mono text-xs opacity-50">

@@ -95,6 +95,7 @@ async function main() {
       content: fakeContent,
       imageUrl: null,
       modelUsed: 'sonnet',
+      ctaUrl: null,
     })
     testDropId = drop.id
     console.log(`   ✓ createDrop          → slug=${drop.slug}`)

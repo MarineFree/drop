@@ -1,6 +1,7 @@
 import type { AiModel } from '@prisma/client'
 import type { DropContent } from '@/lib/ai/schema'
 import type { PublicDrop } from '@/lib/db/drops'
+import { CtaButton } from './CtaButton'
 import { Shell } from './Shell'
 import { SectionRenderer } from './sections'
 import { Poll } from './interactions/Poll'
@@ -52,15 +53,13 @@ export function Quiz({ drop, viewCount, modelUsed }: QuizTemplateProps) {
         <Poll poll={content.interaction} theme="violet" />
       )}
 
-      {/* CTA — inversion pour fond violet (cream bg, ink text pour contraste) */}
-      <section className="my-24 text-center">
-        <button
-          type="button"
-          className="inline-block rounded-sm bg-cream px-10 py-5 font-mono text-xs uppercase tracking-[0.2em] text-ink"
-        >
-          {content.cta.label}
-        </button>
-      </section>
+      {/* CTA — inversion pour fond violet (cream bg, ink text). Caché si pas d'URL. */}
+      <CtaButton
+        slug={drop.slug}
+        ctaUrl={drop.ctaUrl}
+        label={content.cta.label}
+        variant="light"
+      />
 
       {/* Footer interne meta — même shape que HowTo / Manifesto pour cohérence debug */}
       <footer className="mt-12 space-y-1 border-t border-current/20 pt-6 font-mono text-xs opacity-50">

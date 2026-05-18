@@ -18,7 +18,7 @@ export default async function NewDropPage() {
   const sessionUser = await requireUser()
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: sessionUser.id },
-    select: { business: true, trade: true },
+    select: { business: true, trade: true, ctaUrl: true },
   })
   if (!user.business || !user.trade) redirect('/onboarding')
 
@@ -29,7 +29,7 @@ export default async function NewDropPage() {
       </header>
 
       <main className="mx-auto max-w-2xl px-6 pb-32 pt-12">
-        <GenerateClient />
+        <GenerateClient defaultCtaUrl={user.ctaUrl} />
       </main>
 
       <footer className="border-t border-current/10 px-6 py-8">

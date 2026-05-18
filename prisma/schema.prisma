@@ -19,6 +19,7 @@ model User {
   name          String?
   business      String? // "Plomberie Lyon Centre"
   trade         String? // "plombier", "coach", utilisé en context IA
+  ctaUrl        String?  @db.Text // URL CTA par défaut, override possible par drop
   emailVerified Boolean  @default(false)
   image         String?
   createdAt     DateTime @default(now())
@@ -107,6 +108,11 @@ model Drop {
   content      Json // DropContent (Zod-validated avant insert)
   imageUrl     String? @db.Text
   templateType TemplateType // colonne enum, jamais lue depuis le JSON
+
+  // CTA — URL cible du bouton, résolue à la création (override > User.ctaUrl par défaut).
+  // null = bouton caché côté template public. Stockée *figée* : un changement
+  // ultérieur de User.ctaUrl n'affecte pas les drops déjà publiés.
+  ctaUrl String? @db.Text
 
   // Métadonnées dénormalisées (extraites de `content` à la création)
   // Permettent les analytics sans charger/parser chaque JSON.
