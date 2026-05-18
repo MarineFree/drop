@@ -30,7 +30,7 @@ export default async function HomePage() {
 
         {/* H1 */}
         <h1 className="font-display text-[clamp(44px,8vw,84px)] leading-[0.95] tracking-[-0.02em]">
-          Une idée. Quatre-vingt-dix secondes.
+          Une idée. 90 secondes.
           <br />
           Un mini-site partageable.
         </h1>

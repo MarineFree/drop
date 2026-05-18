@@ -138,7 +138,7 @@ export function GenerateClient() {
           Une phrase. Un drop.
         </h1>
         <p className="max-w-xl font-editorial text-xl italic leading-relaxed opacity-80 md:text-2xl">
-          Décris ton idée. Drop choisit le format et le rend en quatre-vingt-dix secondes.
+          Décris ton idée. Drop choisit le format et le rend en 90 secondes.
         </p>
       </header>
 
