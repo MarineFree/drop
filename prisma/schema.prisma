@@ -14,17 +14,80 @@ datasource db {
 // USER : patron de PME
 // ────────────────────────────────────────────────
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  business  String?  // "Plomberie Lyon Centre"
-  trade     String?  // "plombier", "coach", utilisé en context IA
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  business      String? // "Plomberie Lyon Centre"
+  trade         String? // "plombier", "coach", utilisé en context IA
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
 
-  drops  Drop[]
-  events DropEvent[]
+  drops    Drop[]
+  events   DropEvent[]
+  sessions Session[]
+  accounts Account[]
 
   @@map("users")
+}
+
+// ────────────────────────────────────────────────
+// SESSION : Better Auth — révocation immédiate côté DB
+// ────────────────────────────────────────────────
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?  @db.VarChar(300)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+// ────────────────────────────────────────────────
+// ACCOUNT : Better Auth — credentials par provider
+// ────────────────────────────────────────────────
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerId            String // "email" pour magic link
+  accountId             String // = userId en magic-link
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String? // null en magic-link only
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @default(now()) @updatedAt
+
+  @@unique([providerId, accountId])
+  @@map("accounts")
+}
+
+// ────────────────────────────────────────────────
+// VERIFICATION : Better Auth — tokens magic link / email
+// ────────────────────────────────────────────────
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String // l'email
+  value      String // le token
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@unique([identifier, value])
+  @@index([expiresAt])
+  @@map("verifications")
 }
 
 // ────────────────────────────────────────────────

@@ -58,14 +58,14 @@ Obligations actées dans `lessons.md` à exécuter avant ouverture publique du p
 - [ ] Scripts : `scripts/seed-drops.ts` pour les 3 drops démo (appels réels Anthropic + fal.ai)
 - [ ] **Validation prompts** : script qui lance les 5 inputs de référence (Docs/01 §8) × 10 sur Sonnet vs Opus pour décider du modèle par défaut.
 
-## Phase 2 — Auth
-- [ ] Implémenter l'auth (**Better Auth** retenu — cf. `lessons.md`. Plan B = Clerk si blocage, supply chain indépendante).
-- [ ] **Retirer le stand-in `userId` de `/api/generate`** quand la session sera disponible :
-  - Supprimer le champ `userId` du `GenerateRequestSchema` Zod dans `src/app/api/generate/route.ts`
-  - Supprimer la constante `DEFAULT_DEMO_USER_EMAIL` et la résolution top-level await `DEFAULT_USER_ID`
-  - Remplacer `body.userId ?? DEFAULT_USER_ID` par `session.user.id` (ou équivalent Better Auth)
-  - Renvoyer 401 si pas de session (pas de fallback démo)
-- [ ] Basculer le rate-limit `/api/generate` de per-IP à **per-user** (cf. note dans `lessons.md` rate limiting). Garder IP-based en couche complémentaire à seuil plus permissif pour les requêtes non-authentifiées résiduelles.
+## Phase 2 — Auth (FAIT)
+- [x] Implémenter l'auth (**Better Auth** retenu — cf. `lessons.md`). Magic link via Resend, sessions DB Prisma, self-service ouvert.
+- [x] **Stand-in `userId` retiré de `/api/generate`** — `getCurrentUser()` depuis Better Auth, 401 si pas de session, `DEFAULT_DEMO_USER_EMAIL` supprimé.
+- [x] Wipe complet des demo data (plombier/coach/resto + 2 drops préservés). Repartie vierge avec self-service ouvert.
+- [x] `/new` protégé par `requireUser()` + middleware (défense en profondeur, CVE-2025-29927).
+- [ ] **Rate limit `/api/generate` — convertir de per-IP à per-user** maintenant que l'auth existe. Garder IP-based en couche complémentaire avec seuil plus permissif pour les non-authentifiés résiduels.
+- [ ] **Page `/signin` polish** — UX magic link, gestion erreurs réseau, message clair si Resend down.
+- [ ] **Onboarding post-signup** — collecter `business` et `trade` à la première connexion. Sinon eyebrow "Annonce · null" sur les ANNOUNCEMENT et perte de contexte IA. Forcer une redirection `/onboarding` si user.business ou user.trade est null.
 
 ## Phase 2 — Tracking interactions
 

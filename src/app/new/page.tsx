@@ -1,14 +1,18 @@
 import type { Metadata } from 'next'
 import { GenerateClient } from '@/components/creator/GenerateClient'
+import { requireUser } from '@/lib/auth-server'
 
 export const metadata: Metadata = {
   title: 'Drop — nouveau drop',
 }
 
 // Server Component minimal — wrapper visuel autour du GenerateClient (Client).
-// Pas de `force-dynamic` : la page est statique, c'est le Client qui orchestre
-// le streaming SSE et la redirection.
-export default function NewDropPage() {
+// `requireUser()` est la VRAIE ceinture de sécurité : le middleware Next redirige
+// vite côté browser (UX), mais peut être bypass (CVE-2025-29927). Ici on valide
+// la session côté serveur avant de rendre quoi que ce soit.
+export default async function NewDropPage() {
+  await requireUser()
+
   return (
     <div className="min-h-screen bg-cream-grain font-body text-ink antialiased">
       <header className="flex items-center justify-between px-6 py-4 font-mono text-[11px] uppercase tracking-[0.15em] opacity-70">

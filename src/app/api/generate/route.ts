@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { InputKind } from '@prisma/client'
-import { prisma } from '@/lib/db'
 import { generateDrop } from '@/lib/ai/generate'
 import { generateImage } from '@/lib/ai/image'
+import { getCurrentUser } from '@/lib/auth-server'
 import { createDrop } from '@/lib/db/drops'
 import { getGenerateRateLimit } from '@/lib/ratelimit'
 import { parseClientIp } from '@/lib/privacy/visitor'
@@ -11,35 +11,8 @@ import { parseClientIp } from '@/lib/privacy/visitor'
 export const runtime = 'nodejs'
 export const maxDuration = 120 // 2 min — couvre Claude Opus dans le pire cas
 
-// TODO phase 2 (auth) : supprimer DEFAULT_DEMO_USER_EMAIL et la résolution module-boot.
-// L'auth fournira `userId` via la session, plus besoin de stand-in.
-const DEFAULT_DEMO_USER_EMAIL = 'plombier@demo.fr'
-
-/**
- * Résolu une fois au boot du module via top-level await. Si le user démo n'existe pas en DB
- * (par exemple `pnpm db:seed` jamais lancé), le module échoue à charger — signal explicite
- * que l'environnement n'est pas prêt. Préférable à un échec silencieux à chaque requête.
- */
-const DEFAULT_USER_ID: string = await (async () => {
-  try {
-    const user = await prisma.user.findFirstOrThrow({
-      where: { email: DEFAULT_DEMO_USER_EMAIL },
-      select: { id: true },
-    })
-    return user.id
-  } catch (err) {
-    throw new Error(
-      `[api/generate] User démo "${DEFAULT_DEMO_USER_EMAIL}" introuvable. ` +
-        "Lance `pnpm db:seed` d'abord. " +
-        `Cause: ${err instanceof Error ? err.message : String(err)}`
-    )
-  }
-})()
-
 const GenerateRequestSchema = z.object({
   rawInput: z.string().min(10).max(2000),
-  // TODO phase 2 (auth) : supprimer ce champ — `userId` viendra de la session, pas du body.
-  userId: z.string().cuid().optional(),
 })
 
 type GenerateRequest = z.infer<typeof GenerateRequestSchema>
@@ -56,7 +29,16 @@ function sseEvent(name: string, payload: unknown): Uint8Array {
 // ─── POST handler ──────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // 1. Rate limit (avant tout coût Anthropic/fal)
+  // 0. Auth — session requise depuis Better Auth (le middleware redirige déjà
+  // les requêtes browser vers /signin, mais cette route accepte aussi des POST
+  // hors browser : on protège côté serveur en plus, défense en profondeur.
+  // cf. CVE-2025-29927 : le middleware Next seul est bypassable.
+  const user = await getCurrentUser()
+  if (!user) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // 1. Rate limit (per-IP pour l'instant — todo : convertir en per-user, cf. tasks/todo.md)
   const ip = parseClientIp(req.headers)
   const { success, limit, remaining, reset } = await getGenerateRateLimit().limit(ip)
   if (!success) {
@@ -90,7 +72,6 @@ export async function POST(req: NextRequest) {
     )
   }
   const body: GenerateRequest = parsed.data
-  const userId = body.userId ?? DEFAULT_USER_ID
 
   // 3. Stream SSE — orchestration generateDrop → generateImage → createDrop
   const stream = new ReadableStream<Uint8Array>({
@@ -123,7 +104,7 @@ export async function POST(req: NextRequest) {
         currentStep = 'saving'
         send('status', { step: 'saving', label: 'Publication du Drop…' })
         const drop = await createDrop({
-          userId,
+          userId: user.id,
           rawInput: body.rawInput,
           inputKind: InputKind.TEXT,
           content,
