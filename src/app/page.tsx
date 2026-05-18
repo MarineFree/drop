@@ -6,7 +6,7 @@ export default function HomePage() {
         Une idée. 90 secondes. Un mini-site partageable.
       </h1>
       <p className="max-w-prose text-neutral-600">
-        Drop transforme une phrase ou un vocal en page web auto-portée, qui s'auto-détruit
+        Drop transforme une phrase ou un vocal en page web auto-portée, qui s&apos;auto-détruit
         après 7 jours.
       </p>
       <p className="text-sm text-neutral-400">
