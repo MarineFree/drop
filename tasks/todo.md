@@ -46,6 +46,13 @@ Obligations actées dans `lessons.md` à exécuter avant ouverture publique du p
   - coût total cumulé
   Décider de l'issue : on garde Sonnet par défaut, on bascule Opus, ou on route par `template_type`. À faire **avant ouverture publique**, pas urgent en phase 1.
 
+## Voice input (Whisper) — fait
+- [x] `/api/transcribe` route + rate-limit (`drop:transcribe`, 30/h/IP) + auth + MIME whitelist
+- [x] `VoiceRecorder.tsx` Client Component, 4 phases (idle / recording / transcribing / error+permission_denied), MediaRecorder API, cap 60s + auto-stop
+- [x] Intégration dans `GenerateClient.tsx` sous textarea, focus + hint "À partir d'un enregistrement vocal · éditable"
+- [ ] **Support Safari/iOS** — MediaRecorder API marche en Chrome desktop ; Safari produit du `audio/mp4`, à valider. Hors scope MVP hackathon.
+- [ ] **Rate-limit per-user sur /api/transcribe** — actuellement per-IP comme /api/generate. À convertir en même temps que generate (cf. plus bas).
+
 ## À faire ensuite (priorité descendante)
 - [x] Étoffer le pool de slug_words à 150 adjectifs / 150 noms / 40 couleurs (900 000 combos)
 - [x] Implémenter `getActiveDropBySlug`, `expireOldDrops`, `trackEvent` dans `src/lib/db/drops.ts`

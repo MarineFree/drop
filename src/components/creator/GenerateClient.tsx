@@ -2,6 +2,7 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { Route } from 'next'
 import { useRouter } from 'next/navigation'
+import { VoiceRecorder } from './VoiceRecorder'
 
 type Phase = 'idle' | 'uploading' | 'streaming' | 'done' | 'error'
 
@@ -48,7 +49,11 @@ interface GenerateClientProps {
 export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [input, setInput] = useState('')
+  // Hint "À partir d'un enregistrement vocal" : reste affiché tant que
+  // l'utilisateur n'a pas modifié manuellement la transcription.
+  const [voiceTranscribed, setVoiceTranscribed] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState<string | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
@@ -224,6 +229,16 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
     // input + file préservés volontairement — l'utilisateur peut corriger sans tout retaper.
   }
 
+  // Reçoit la transcription Whisper depuis VoiceRecorder. Remplit le textarea et
+  // pose le focus pour permettre une correction immédiate. Le flag voiceTranscribed
+  // commande l'affichage du hint sous le champ — il saute dès que l'utilisateur tape.
+  function handleVoiceTranscription(text: string) {
+    setInput(text)
+    setVoiceTranscribed(true)
+    // setTimeout 0 : laisse React commit le nouveau value avant de poser le focus.
+    setTimeout(() => textareaRef.current?.focus(), 0)
+  }
+
   const formDisabled =
     phase === 'uploading' || phase === 'streaming' || phase === 'done'
 
@@ -249,8 +264,13 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
       >
         <div className="relative">
           <textarea
+            ref={textareaRef}
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => {
+              setInput(e.target.value)
+              // Édition manuelle = la source devient "tapée", on retire le hint vocal.
+              if (voiceTranscribed) setVoiceTranscribed(false)
+            }}
             placeholder={PLACEHOLDER}
             rows={6}
             maxLength={MAX_LEN}
@@ -260,6 +280,20 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
           <span className="absolute bottom-3 right-4 font-mono text-[10px] tabular-nums opacity-50">
             {inputLen} / {MAX_LEN}
           </span>
+        </div>
+
+        {/* Voice input — alternative au clavier. Subtil sous le textarea, ne
+            prend la place visuelle que pendant l'enregistrement / transcription. */}
+        <div className="mt-3 flex min-h-[28px] items-center gap-4">
+          <VoiceRecorder
+            onTranscription={handleVoiceTranscription}
+            disabled={formDisabled}
+          />
+          {voiceTranscribed && (
+            <span className="font-mono text-[10px] italic opacity-60">
+              À partir d&apos;un enregistrement vocal · éditable
+            </span>
+          )}
         </div>
 
         {/* Photo upload (optionnel) — discret sous la textarea */}

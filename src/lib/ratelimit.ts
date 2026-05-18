@@ -34,6 +34,24 @@ export function getGenerateRateLimit(): Ratelimit {
   return _generateLimit
 }
 
+let _transcribeLimit: Ratelimit | null = null
+
+/**
+ * 30 transcriptions / heure / IP. Plus généreux que generate parce qu'une
+ * transcription peut être ratée (silence, abandon) et que le user doit pouvoir
+ * réessayer. Prefix distinct → n'érode pas le quota generate.
+ */
+export function getTranscribeRateLimit(): Ratelimit {
+  if (_transcribeLimit) return _transcribeLimit
+  _transcribeLimit = new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(30, '1 h'),
+    analytics: true,
+    prefix: 'drop:transcribe',
+  })
+  return _transcribeLimit
+}
+
 /** Identifiant client pour le rate limit. Reproduit la logique IP-derrière-proxy. */
 export function getClientIdentifier(req: Request): string {
   const fwd = req.headers.get('x-forwarded-for')
