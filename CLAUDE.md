@@ -9,14 +9,16 @@ Hackathon **Académie IApreneurs × Hostinger** — thème 02 (création de cont
 ## Stack
 
 - **Framework** : Next.js 15 (App Router), TypeScript strict, Node 20+
-- **UI** : Tailwind v4, shadcn/ui, framer-motion
-- **DB** : PostgreSQL via Prisma
-- **IA texte** : Anthropic SDK (`@anthropic-ai/sdk`), modèle `claude-opus-4-7`
-- **IA image** : fal.ai (Flux Schnell pour la vitesse, ~2s par image)
-- **IA voice → text** : OpenAI Whisper API (ou `@anthropic-ai/sdk` si dispo en speech)
-- **Tracking** : table `drop_events` custom (pas de Plausible : on garde le contrôle pour la démo)
-- **Cron** : route `/api/cron/expire` appelée par cron Hostinger toutes les heures
-- **Déploiement** : Hostinger Cloud Hosting / VPS, build Next standalone
+- **UI** : Tailwind v4 (palette custom `@theme`), pas de lib UI ni framer-motion — animations CSS `@keyframes`
+- **DB** : PostgreSQL (Supabase pooler) via Prisma 5.22
+- **Auth** : Better Auth (magic link via Resend, sessions DB)
+- **IA texte** : Anthropic SDK, **Sonnet 4.6 par défaut** (`DROP_GENERATION_MODEL=sonnet|opus`), retry Zod + fallback modèle
+- **IA image** : fal.ai (Flux Schnell, ~2s) OU upload photo patron via Vercel Blob
+- **IA voice → text** : OpenAI Whisper (`whisper-1`, langue `fr`)
+- **Rate limit** : Upstash Redis (sliding window, préfixes distincts `drop:generate` / `drop:transcribe`)
+- **Tracking** : table `drop_events` custom, hash visiteur quotidien (SHA-256 + HMAC daily salt — RGPD-anonyme)
+- **Cron** : route `/api/cron/expire` (bearer `CRON_SECRET`)
+- **Déploiement** : **Vercel** (le hackathon était Hostinger-themed mais le déploiement effectif est Vercel — Next standalone)
 
 ---
 
@@ -40,70 +42,87 @@ pnpm db:seed          # 3 drops de demo pour la présentation
 ```
 src/
 ├── app/
-│   ├── (creator)/            # Espace patron PME (auth requise)
-│   │   ├── dashboard/        # Liste des drops + stats
-│   │   └── new/              # Form de création (texte ou vocal)
-│   ├── d/[slug]/             # PAGES PUBLIQUES des drops — SSR avec cache
-│   │   └── page.tsx          # Sélectionne le template, hydrate avec les data
+│   ├── page.tsx              # Landing publique
+│   ├── signin/               # Magic link Better Auth
+│   ├── onboarding/           # Collecte business + trade post-signup
+│   ├── new/                  # Form de création (auth requise) — texte OU vocal
+│   ├── dashboard/
+│   │   ├── page.tsx          # Liste drops + KPIs
+│   │   ├── settings/         # Réglages user (CTA URL par défaut)
+│   │   └── d/[id]/           # Détail drop + timeline events
+│   ├── d/[slug]/             # PAGES PUBLIQUES — force-dynamic, tracking VIEW
 │   └── api/
-│       ├── drops/route.ts    # POST: créer un drop, GET: lister
-│       ├── drops/[id]/route.ts
-│       ├── generate/route.ts # Endpoint streaming pour la génération
-│       └── cron/expire/route.ts
+│       ├── auth/[...all]/    # Better Auth handler
+│       ├── generate/         # SSE streaming : Claude → fal.ai/Blob → createDrop
+│       ├── transcribe/       # POST audio → Whisper → string
+│       ├── upload-image/     # POST multipart → Vercel Blob
+│       ├── d/[slug]/cta/     # 302 redirect + tracking CTA_CLICK
+│       └── cron/expire/      # bearer CRON_SECRET → soft-delete TTL
 ├── lib/
 │   ├── ai/
-│   │   ├── generate.ts       # Pipeline principal de génération
-│   │   ├── prompts.ts        # Tous les prompts système
-│   │   ├── schema.ts         # Zod schema du DropContent (cf. plus bas)
-│   │   └── image.ts          # Wrapper fal.ai
-│   ├── db.ts                 # Prisma client singleton
-│   └── slug.ts               # Génération de slugs lisibles
+│   │   ├── generate.ts       # Pipeline : Sonnet/Opus + retry Zod + fallback
+│   │   ├── prompts.ts        # System prompts (FR strict)
+│   │   ├── schema.ts         # Zod DropContent
+│   │   ├── image.ts          # Wrapper fal.ai Flux Schnell
+│   │   └── whisper.ts        # Wrapper OpenAI Whisper
+│   ├── auth.ts               # Better Auth config
+│   ├── auth-server.ts        # getCurrentUser / requireUser
+│   ├── db.ts                 # Prisma singleton
+│   ├── db/drops.ts           # createDrop, getActiveDropBySlug, trackEvent…
+│   ├── ratelimit.ts          # Upstash sliding windows
+│   ├── privacy/visitor.ts    # hashVisitor (anonyme quotidien)
+│   ├── emails/               # Templates Resend magic link
+│   └── slug.ts               # Slugs lisibles depuis SlugWord pool
 ├── components/
-│   ├── templates/            # UN composant par variante (template_type)
-│   │   ├── how-to.tsx
-│   │   ├── manifesto.tsx
-│   │   ├── case-study.tsx
-│   │   ├── quiz.tsx
-│   │   └── announcement.tsx
-│   └── creator/              # UI du dashboard
+│   ├── templates/            # 5 templates publics + Shell + CtaButton + sections/interactions
+│   ├── creator/              # GenerateClient (SSE), VoiceRecorder
+│   └── dashboard/            # DashboardHeader, DropCard, KpiGrid, ShareBar, EventsTimeline
+├── middleware.ts             # Redirect /signin si pas de cookie (UX, défense-en-profondeur côté Server)
 └── prisma/schema.prisma
 ```
 
 ### Flow de création (le truc à ne pas casser)
 
-1. Patron envoie input (texte ou audio) → `POST /api/generate`
-2. Si audio → Whisper → texte
-3. **Un seul appel Claude** avec output structuré (tool use ou JSON mode) qui renvoie un `DropContent` complet (cf. schema)
-4. **En parallèle**, fal.ai génère l'image hero à partir du `image_prompt` retourné par Claude
-5. Insertion en DB → slug généré → redirection `/d/{slug}`
-6. La page `/d/[slug]` lit la row, sélectionne `templates/${template_type}.tsx`, rend.
+1. Patron remplit `/new` : **textarea** OU **bouton "Parler à la place"** (MediaRecorder → POST `/api/transcribe` → Whisper → remplit le textarea, éditable) + optionnel **photo perso** (POST `/api/upload-image` → Vercel Blob) + optionnel **URL CTA** (pré-remplie depuis `User.ctaUrl`)
+2. Submit → POST `/api/generate` (SSE)
+3. Auth check + rate limit (`drop:generate`, per-IP, 10/h)
+4. **Un seul appel Claude** (tool use, output structuré) → `DropContent` validé Zod. Sur Zod fail : retry même modèle ; sur API fail : fallback Opus→Sonnet. `modelUsed` persisté.
+5. **Image** : si photo uploadée fournie → skip fal.ai, sinon `generateImage(content.image_prompt)`
+6. `createDrop` → slug unique (P2002 retry × 5 sur pool `slug_words`) → SSE `done` avec URL
+7. Page `/d/[slug]` : `force-dynamic`, lookup `getActiveDropBySlug` (filtre `isActive + expiresAt`), track VIEW, render `TEMPLATES[templateType]` avec `MinimalRender` en filet
+8. Clic sur le CTA → `/api/d/[slug]/cta` (GET) → track `CTA_CLICK` + 302 vers `drop.ctaUrl`
 
-**Streaming optionnel** : si le temps le permet, stream les sections au fur et à mesure pour donner l'effet "ça se construit en live" — fort impact démo.
+**SSE en place** dans `/api/generate` — events `status` / `done` / `error` consommés par `GenerateClient`.
 
 ---
 
 ## Le contrat IA (le plus important)
 
-Claude doit **toujours** renvoyer un objet conforme à ce schema Zod (`lib/ai/schema.ts`). Tout le reste de l'app en dépend. Ne jamais générer du contenu en texte libre.
+Claude doit **toujours** renvoyer un objet conforme à `DropContentSchema` (`src/lib/ai/schema.ts`). Tout le reste de l'app en dépend. Ne jamais générer du contenu en texte libre. **Source de vérité = le fichier**, le résumé ci-dessous peut dériver.
 
 ```ts
 {
   template_type: 'how-to' | 'manifesto' | 'case-study' | 'quiz' | 'announcement',
-  hook: { title: string, subtitle: string },          // page d'accueil
+  hook: { title: string, subtitle: string },
   image_prompt: string,                                // pour fal.ai
-  sections: Array<                                     // 2 à 4 sections
+  sections: Array<                                     // 2 à 4
     | { kind: 'text', heading: string, body: string }
     | { kind: 'stat', value: string, label: string }
     | { kind: 'checklist', items: string[] }
     | { kind: 'comparison', before: string, after: string }
   >,
-  interaction: { kind: 'quiz' | 'poll' | 'none', payload?: any },
-  cta: { label: string, kind: 'contact' | 'booking' | 'devis' | 'lead' },
-  meta: { theme: 'cream' | 'violet' | 'dark', tone: string }
+  interaction:
+    | { kind: 'none' }
+    | { kind: 'quiz', question: string, options: string[], correct_idx: number, explanation: string }
+    | { kind: 'poll', question: string, options: string[] },
+  cta: { label: string, kind: 'contact' | 'booking' | 'devis' | 'lead' | 'newsletter', placeholder?: string },
+  meta: { theme: 'cream' | 'violet' | 'dark', tone: string, estimated_read_time_sec: number }
 }
 ```
 
-C'est Claude qui choisit le `template_type` en fonction du sujet — c'est ce qui rend chaque Drop visuellement différent sans qu'on ait à choisir un template manuellement.
+**Notes opérationnelles** :
+- L'**URL cible** du CTA est PATRON-side (stockée sur `Drop.ctaUrl`, résolue à la création depuis `User.ctaUrl` ou override `/new`). L'IA ne génère **que** le label et le kind du bouton.
+- C'est Claude qui choisit le `template_type` selon le sujet — c'est ce qui rend chaque Drop visuellement différent.
 
 ---
 
@@ -114,20 +133,34 @@ C'est Claude qui choisit le `template_type` en fonction du sujet — c'est ce qu
 - **Toujours générer l'image en parallèle du texte**, pas après. Promise.all obligatoire.
 - **Les templates ne doivent jamais fetch eux-mêmes** — ils reçoivent toute la data en props depuis la page serveur.
 - **Pas de migrations Prisma pendant le hackathon** — utiliser `db:push`. On fera propre après si le projet survit.
-- **Le slug doit être human-readable** : `lent-papillon-mauve`, pas un UUID. Slugs garantis uniques via une table de mots.
-- **TTL = `expires_at` en DB**, jamais une suppression manuelle. Le cron lit cette colonne et soft-delete (`is_active = false`). La page `/d/[slug]` renvoie 410 Gone si expiré, avec une animation propre.
+- **Le slug doit être human-readable** : `lent-papillon-mauve`, pas un UUID. Slugs garantis uniques via la table `SlugWord`.
+- **TTL = `expiresAt` en DB**, jamais une suppression manuelle. Le cron lit cette colonne et soft-delete (`isActive = false`). La page `/d/[slug]` filtre via `getActiveDropBySlug` (`isActive && expiresAt > now`) → `notFound()` (404) sinon. Pas de 410 Gone pour l'instant — TODO si l'UX éphémère devient un argument différenciant.
+- **Défense en profondeur auth** : middleware redirige côté UX, MAIS chaque Server Component sensible appelle `requireUser()` côté serveur (CVE-2025-29927).
+- **Pas d'`amend`, pas de `--no-verify`**. Création de NOUVEAU commit toujours.
+- **Toujours grep défensif les secrets** avant `git add` sur des fichiers modifiés.
 
 ---
 
 ## Variables d'env (`.env.local`)
 
+Référence canonique : `.env.local.example`. Liste actuelle :
+
 ```
-DATABASE_URL=postgresql://...
+DATABASE_URL=postgresql://...          # Supabase pooler (port 5432, PAS de ?pgbouncer=true)
 ANTHROPIC_API_KEY=sk-ant-...
+DROP_GENERATION_MODEL=sonnet           # sonnet (défaut) | opus
 FAL_KEY=...
-OPENAI_API_KEY=...                # uniquement pour Whisper
-CRON_SECRET=...                   # header bearer pour /api/cron/expire
-NEXT_PUBLIC_BASE_URL=https://drop.tld
+OPENAI_API_KEY=...                     # Whisper transcription
+CRON_SECRET=...                        # bearer pour /api/cron/expire
+SALT_SEED=...                          # random long — base du daily salt visiteur
+UPSTASH_REDIS_REST_URL=...
+UPSTASH_REDIS_REST_TOKEN=...
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+BETTER_AUTH_SECRET=...                 # openssl rand -base64 32
+BETTER_AUTH_URL=http://localhost:3000
+RESEND_API_KEY=...
+RESEND_FROM_EMAIL=onboarding@resend.dev # sandbox (livre uniquement au compte Resend)
+BLOB_READ_WRITE_TOKEN=...              # Vercel Blob (upload photos patron)
 ```
 
 ---
