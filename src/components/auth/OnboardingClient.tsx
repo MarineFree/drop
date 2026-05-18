@@ -43,8 +43,7 @@ export function OnboardingClient() {
         return
       }
 
-      // `/new` est typé statiquement par typedRoutes — pas besoin de cast.
-      router.push('/new' as Route)
+      router.push('/dashboard' as Route)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur réseau.')
       setPhase('error')

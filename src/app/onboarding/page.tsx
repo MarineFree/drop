@@ -19,8 +19,8 @@ export default async function OnboardingPage() {
     select: { business: true, trade: true },
   })
 
-  // Anti-double-onboarding : si déjà rempli, on file directement à /new.
-  if (user.business && user.trade) redirect('/new')
+  // Anti-double-onboarding : si déjà rempli, on file directement au dashboard.
+  if (user.business && user.trade) redirect('/dashboard')
 
   return (
     <div className="min-h-screen bg-cream-grain font-body text-ink antialiased">

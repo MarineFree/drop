@@ -128,6 +128,66 @@ const PUBLIC_DROP_SELECT = {
 
 export type PublicDrop = Prisma.DropGetPayload<{ select: typeof PUBLIC_DROP_SELECT }>
 
+// ────────────────────────────────────────────────────────────
+// Dashboard patron : queries sur les drops d'un user
+// ────────────────────────────────────────────────────────────
+
+const DASHBOARD_DROP_SELECT = {
+  id: true,
+  slug: true,
+  content: true,
+  imageUrl: true,
+  templateType: true,
+  viewCount: true,
+  ctaCount: true,
+  createdAt: true,
+  expiresAt: true,
+  isActive: true,
+} satisfies Prisma.DropSelect
+
+export type DashboardDrop = Prisma.DropGetPayload<{ select: typeof DASHBOARD_DROP_SELECT }>
+
+/**
+ * Liste les drops d'un user (les 50 derniers par défaut, ordre desc createdAt)
+ * + agrégats globaux. Les 2 queries en parallèle. Index `(userId, createdAt DESC)`
+ * du schema garantit que c'est O(limit), pas O(table).
+ */
+export async function getUserDrops(userId: string, limit = 50) {
+  const [drops, totals] = await Promise.all([
+    prisma.drop.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: DASHBOARD_DROP_SELECT,
+    }),
+    prisma.drop.aggregate({
+      where: { userId },
+      _sum: { viewCount: true, ctaCount: true },
+      _count: { id: true },
+    }),
+  ])
+  return { drops, totals }
+}
+
+/**
+ * Détail d'un drop POUR son propriétaire (page dashboard détail).
+ * Le `where: { id, userId }` est crucial : interdit l'access aux drops d'autres
+ * users via ID guessing. Retourne `null` (→ notFound() côté page) plutôt que
+ * de leak l'existence.
+ */
+export async function getUserDropById(userId: string, dropId: string) {
+  return prisma.drop.findFirst({
+    where: { id: dropId, userId },
+    include: {
+      events: { orderBy: { createdAt: 'desc' }, take: 200 },
+    },
+  })
+}
+
+export type DashboardDropDetail = NonNullable<
+  Awaited<ReturnType<typeof getUserDropById>>
+>
+
 /**
  * Retourne le drop si actif (non soft-deleted ET non expiré), sinon `null`.
  * Sémantique stricte : un drop en DB avec `isActive = false` OU `expiresAt <= now()`

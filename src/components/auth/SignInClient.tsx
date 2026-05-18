@@ -7,7 +7,7 @@ type Phase = 'idle' | 'sending' | 'sent' | 'error'
 
 export function SignInClient() {
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirect') ?? '/new'
+  const redirectTo = searchParams.get('redirect') ?? '/dashboard'
 
   const [email, setEmail] = useState('')
   const [phase, setPhase] = useState<Phase>('idle')
