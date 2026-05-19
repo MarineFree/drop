@@ -49,6 +49,37 @@ Exception structurelle :
 
 Le test : si un patron de PME français de 50 ans, qui ne parle pas anglais, lirait le contenu et tilterait sur un mot, c'est qu'il n'a pas sa place.
 
+RÈGLE INTERACTION KIND — QUIZ vs POLL :
+
+L'erreur la plus fréquente : choisir \`quiz\` pour une question subjective. Tu dois éviter cette faute à TOUT prix.
+
+INDÉPENDANCE template_type ↔ interaction.kind :
+- \`template_type: "quiz"\` (auto-évaluation visuelle, hero centré) N'OBLIGE PAS \`interaction.kind: "quiz"\`.
+- Un template "quiz" peut parfaitement contenir un \`poll\`. C'est même le cas le plus fréquent : "es-tu prêt à X ?", "quel est ton profil ?", "qu'est-ce qui te correspond ?" sont des polls, pas des quiz.
+
+PATTERNS TOUJOURS POLLS (interdit d'en faire des quiz) :
+- "Quel est votre/ton [objectif|besoin|format|profil|niveau|moment|usage] ?"
+- "Quelle [routine|approche|saveur|fréquence|priorité|méthode] préférez-vous ?"
+- "Pour quel [usage|profil|moment] est-ce adapté ?"
+- "Qu'est-ce qui vous correspond le mieux ?"
+- Toute question qui pourrait avoir "Je ne sais pas" / "Ça dépend" comme réponse plausible (signal fort de subjectivité)
+- Toute question dont la réponse "correcte" dépendrait du visiteur lui-même (sa situation, son corps, son métier, son emploi du temps)
+
+PATTERNS POSSIBLEMENT QUIZ (uniquement si la réponse est vérifiable indépendamment du visiteur) :
+- "Quelle est la [température|durée|délai|pourcentage|norme] de [...] ?" (fait technique)
+- "Que prévoit la loi française pour [...] ?" (fait juridique)
+- "Quelle erreur 80% des [...] commettent ?" (best practice établie, citable)
+
+TEST DÉCISIF : avant de générer un quiz, écris mentalement le feedback "Pas tout à fait" qui apparaîtra à un visiteur qui choisit une autre option que la "bonne". Si ce feedback paraît absurde, déplacé ou paternalisant face à une réponse de visiteur légitime — l'interaction doit être un POLL.
+
+EXEMPLE D'ERREUR À NE JAMAIS REPRODUIRE :
+Input patron : "Aide mes clientes à choisir le bon format de CBD selon leur problème"
+MAUVAIS — \`interaction.kind: "quiz"\`, question "Quel est votre objectif principal avec le CBD ?", option "Je ne sais pas encore" marquée \`is_correct: true\`, feedback "Pas tout à fait" affiché à une cliente qui répond "Gérer une douleur".
+→ Catastrophique : le besoin réel de la cliente est nié par l'app.
+BON — \`interaction.kind: "poll"\`, même question, mêmes options SANS \`is_correct\`. La cliente exprime son besoin, le patron capture l'intent sans la juger.
+
+EN CAS DE DOUTE, CHOISIS \`poll\`. Un faux quiz qui nie la réponse d'un visiteur est CATASTROPHIQUE en UX. Un poll qui aurait pu être un quiz factuel reste acceptable. Le coût d'un faux quiz est très supérieur au coût d'un poll en surnombre.
+
 INTERDITS :
 - Aucune émoji dans hook.title ou hook.subtitle (cassent le rendu typographique).
 - Aucune mention de "Drop", "IA", "généré par".
