@@ -1,20 +1,44 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { DropContent } from '@/lib/ai/schema'
+import { sendEvent } from '@/lib/events-client'
 
 type QuizData = Extract<DropContent['interaction'], { kind: 'quiz' }>
 
 interface QuizWidgetProps {
   quiz: QuizData
+  /** Slug du drop — utilisé pour les events INTERACTION_START / DONE. */
+  dropSlug: string
 }
 
-export function QuizWidget({ quiz }: QuizWidgetProps) {
+export function QuizWidget({ quiz, dropSlug }: QuizWidgetProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
+  // Idempotence : INTERACTION_START et DONE fire UNE SEULE fois par mount, même
+  // si le visiteur change d'avis et reclique. Refs (pas state) pour éviter un
+  // re-render inutile et survivre aux re-renders parents.
+  const startedRef = useRef(false)
+  const doneRef = useRef(false)
+
   const correctIdx = quiz.options.findIndex(o => o.is_correct)
   const showResult = selectedIdx !== null
   const selectedFeedback =
     selectedIdx !== null ? (quiz.options[selectedIdx]?.feedback ?? '') : ''
   const isCorrectAnswer = selectedIdx !== null && selectedIdx === correctIdx
+
+  // Sélectionner une option dans le QuizWidget actuel = soumettre (révélation
+  // immédiate du feedback). On considère que START + DONE arrivent ensemble.
+  function handleSelect(idx: number) {
+    if (showResult) return
+    if (!startedRef.current) {
+      startedRef.current = true
+      sendEvent(dropSlug, 'INTERACTION_START')
+    }
+    setSelectedIdx(idx)
+    if (!doneRef.current) {
+      doneRef.current = true
+      sendEvent(dropSlug, 'INTERACTION_DONE')
+    }
+  }
 
   return (
     <section className="my-24">
@@ -44,7 +68,7 @@ export function QuizWidget({ quiz }: QuizWidgetProps) {
             <button
               key={i}
               type="button"
-              onClick={() => !showResult && setSelectedIdx(i)}
+              onClick={() => handleSelect(i)}
               disabled={showResult}
               className={classes}
             >

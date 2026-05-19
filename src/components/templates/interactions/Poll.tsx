@@ -1,11 +1,14 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { DropContent } from '@/lib/ai/schema'
+import { sendEvent } from '@/lib/events-client'
 
 type PollData = Extract<DropContent['interaction'], { kind: 'poll' }>
 
 interface PollProps {
   poll: PollData
+  /** Slug du drop — utilisé pour les events INTERACTION_START / DONE. */
+  dropSlug: string
 }
 
 // Distributions simulées prédéterminées par nombre d'options. Sommes à 100.
@@ -22,12 +25,26 @@ const FAKE_PERCENTAGES: Record<number, number[]> = {
 // de palette (`--accent`, `--text`) injectées par Shell.
 const SELECTED_CLASS = 'border-[var(--accent)] bg-[var(--accent)]/15'
 
-export function Poll({ poll }: PollProps) {
+export function Poll({ poll, dropSlug }: PollProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
+  // Idempotence : un seul couple START+DONE par mount, même si le visiteur
+  // re-clique (en pratique le button passe disabled mais on garde la garde).
+  const recordedRef = useRef(false)
   const showResults = selectedIdx !== null
   const percentages =
     FAKE_PERCENTAGES[poll.options.length] ??
     Array<number>(poll.options.length).fill(Math.floor(100 / poll.options.length))
+
+  // Pas de "submit" séparé : voter = engager + compléter en une action.
+  // On fire les deux events à la suite pour matcher la sémantique du QuizWidget.
+  function handleVote(idx: number) {
+    if (showResults) return
+    setSelectedIdx(idx)
+    if (recordedRef.current) return
+    recordedRef.current = true
+    sendEvent(dropSlug, 'INTERACTION_START')
+    sendEvent(dropSlug, 'INTERACTION_DONE')
+  }
 
   return (
     <section className="my-24">
@@ -55,7 +72,7 @@ export function Poll({ poll }: PollProps) {
             <button
               key={i}
               type="button"
-              onClick={() => !showResults && setSelectedIdx(i)}
+              onClick={() => handleVote(i)}
               disabled={showResults}
               className={classes}
             >

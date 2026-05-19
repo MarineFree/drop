@@ -70,8 +70,12 @@ export function Quiz({ drop, viewCount, modelUsed }: QuizTemplateProps) {
       </div>
 
       {/* Interaction proéminente — coeur du template QUIZ */}
-      {content.interaction.kind === 'quiz' && <QuizWidget quiz={content.interaction} />}
-      {content.interaction.kind === 'poll' && <Poll poll={content.interaction} />}
+      {content.interaction.kind === 'quiz' && (
+        <QuizWidget quiz={content.interaction} dropSlug={drop.slug} />
+      )}
+      {content.interaction.kind === 'poll' && (
+        <Poll poll={content.interaction} dropSlug={drop.slug} />
+      )}
 
       {/* CTA — variant ghost (bordé), laisse respirer la card si l'accent est saturé. Caché si pas d'URL. */}
       <CtaButton

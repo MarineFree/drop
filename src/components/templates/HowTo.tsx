@@ -58,9 +58,14 @@ export function HowTo({ drop, viewCount, modelUsed }: HowToProps) {
         <SectionRenderer key={i} section={s} />
       ))}
 
-      {/* Interaction : Quiz ou Poll selon kind. Local state, pas de tracking serveur. */}
-      {content.interaction.kind === 'quiz' && <QuizWidget quiz={content.interaction} />}
-      {content.interaction.kind === 'poll' && <Poll poll={content.interaction} />}
+      {/* Interaction : Quiz ou Poll selon kind. Local state pour la révélation,
+          events INTERACTION_START / DONE émis via sendBeacon (cf. dropSlug). */}
+      {content.interaction.kind === 'quiz' && (
+        <QuizWidget quiz={content.interaction} dropSlug={drop.slug} />
+      )}
+      {content.interaction.kind === 'poll' && (
+        <Poll poll={content.interaction} dropSlug={drop.slug} />
+      )}
 
       {/* CTA — bouton cliquable qui passe par /api/d/<slug>/cta pour tracker
           puis rediriger vers `drop.ctaUrl`. Caché si `ctaUrl` est null. */}

@@ -52,6 +52,24 @@ export function getTranscribeRateLimit(): Ratelimit {
   return _transcribeLimit
 }
 
+let _eventsLimit: Ratelimit | null = null
+
+/**
+ * 60 events / heure / IP. Volume légitime : un visiteur émet ~4-5 events par
+ * drop view (SCROLL_50, SCROLL_COMPLETE, INTERACTION_START, INTERACTION_DONE).
+ * Multi-onglets compris, 60/h couvre confortablement. Prefix distinct des autres.
+ */
+export function getEventsRateLimit(): Ratelimit {
+  if (_eventsLimit) return _eventsLimit
+  _eventsLimit = new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(60, '1 h'),
+    analytics: true,
+    prefix: 'drop:events',
+  })
+  return _eventsLimit
+}
+
 /** Identifiant client pour le rate limit. Reproduit la logique IP-derrière-proxy. */
 export function getClientIdentifier(req: Request): string {
   const fwd = req.headers.get('x-forwarded-for')

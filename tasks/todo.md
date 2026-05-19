@@ -76,8 +76,10 @@ Obligations actées dans `lessons.md` à exécuter avant ouverture publique du p
 - [x] **Dashboard patron** — `/dashboard` (liste drops + 4 KPIs globaux) et `/dashboard/d/[id]` (détail + timeline events + ShareBar). Routes protégées via middleware + `requireUser`. Redirect post-signin et post-onboarding pointent désormais vers `/dashboard`. Pas de `(creator)/layout.tsx` (route group rejeté), DashboardHeader importé directement dans chaque page.
 - [ ] **Page /settings ou /dashboard/profile** — permettre à un user de modifier `business` et `trade` après l'onboarding initial. Pour l'instant pas d'UI : seul l'API `POST /api/user/profile` permet la modif.
 - [ ] **Trade → system prompt IA** — passer `user.trade` (artisans / coaching / restauration / etc.) dans le prompt à Sonnet pour calibrer le ton et le format. Actuellement le champ est stocké mais non utilisé côté génération.
-- [ ] **Tracker SCROLL_50, SCROLL_COMPLETE** côté `/d/[slug]` (Client Component "ScrollTracker" qui envoie via `navigator.sendBeacon` aux `/api/events`). Sans ça, `EventsTimeline` montre uniquement des VIEW events — appauvrit la démo.
-- [ ] **Tracker CTA_CLICK** côté composant CTA (Client Component qui POST `/api/events` avant le href). Pareil, important pour la démo + utile pour mesurer la conversion réelle.
+- [x] ~~**Tracker SCROLL_50, SCROLL_COMPLETE**~~ — fait, cf. Done.
+- [x] ~~**Tracker CTA_CLICK**~~ — fait dans la passe CTA URL (route `/api/d/[slug]/cta` track avant 302).
+- [ ] **LEAD_SUBMITTED** — hors scope tant qu'aucun form de capture lead n'existe (CTA actuel = redirect 302 vers URL externe du patron). À ajouter quand un patron voudra collecter des emails on-site.
+- [ ] **Engagement score** sur la timeline dashboard : afficher un mini-score calculé depuis les events (visites × % complete × % interactions). Bonus storytelling.
 
 ## Phase 2 — Tracking interactions
 
@@ -103,6 +105,7 @@ Obligations actées dans `lessons.md` à exécuter avant ouverture publique du p
 
 ## Done (passes récentes)
 
+- **Tracking engagement** (2026-05-19) — `POST /api/events` (rate-limit `drop:events` 60/h/IP), helper `sendEvent` (sendBeacon + fetch keepalive fallback), `ScrollTracker` Client Component sur `/d/[slug]` (paliers 50% / 95%, fallback temps 3s/8s sur pages courtes), instrumentation `QuizWidget` + `Poll` avec INTERACTION_START / DONE (idempotent via refs). EventsTimeline dashboard avait déjà KIND_LABEL/KIND_COLOR pour les 4 nouveaux kinds — rendu automatique.
 - **Brand palette intelligente** (2026-05-19) — refonte de la première tentative (accent-only, rolled back le matin même) en **palette complète**. Shell injecte 5 CSS vars (`--bg`, `--text`, `--accent`, `--accent-fg`, `--soft`) issues d'une des 8 palettes choisies par le patron en `/dashboard/settings`. Templates consomment les vars indistinctement, `meta.theme` IA devient mort code (ignoré par Shell, conservé dans le Zod schema pour compat). 8 palettes incl. 1 dark (`noir`). Picker preview chaque palette en complet (bg + accent + label en text color réel). Drops existants : `brandColor` null → palette `violet` par défaut → équivalent au comportement avant la passe.
 
 ## Risques connus

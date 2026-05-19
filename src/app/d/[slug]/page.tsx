@@ -5,6 +5,7 @@ import { EventKind, type AiModel, type TemplateType } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { getActiveDropBySlug, trackEvent, type PublicDrop } from '@/lib/db/drops'
 import { hashVisitor } from '@/lib/privacy/visitor'
+import { ScrollTracker } from '@/components/d/ScrollTracker'
 import { Announcement } from '@/components/templates/Announcement'
 import { CaseStudy } from '@/components/templates/CaseStudy'
 import { HowTo } from '@/components/templates/HowTo'
@@ -71,6 +72,11 @@ export default async function DropPage({ params }: Props) {
 
   const Template = TEMPLATES[drop.templateType] ?? MinimalRender
   return (
-    <Template drop={drop} viewCount={extras.viewCount} modelUsed={extras.modelUsed} />
+    <>
+      {/* ScrollTracker : émet SCROLL_50 / SCROLL_COMPLETE via sendBeacon vers
+          /api/events. Ne rend rien visuellement, ne casse pas la composition. */}
+      <ScrollTracker dropSlug={drop.slug} />
+      <Template drop={drop} viewCount={extras.viewCount} modelUsed={extras.modelUsed} />
+    </>
   )
 }
