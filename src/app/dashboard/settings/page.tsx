@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { BrandPalettePicker } from '@/components/dashboard/BrandPalettePicker'
+import { SettingsSubmitButton } from '@/components/dashboard/SettingsSubmitButton'
 import { requireUser } from '@/lib/auth-server'
 import {
   BRAND_PALETTE_KEYS,
@@ -57,10 +58,21 @@ async function updateSettings(formData: FormData) {
       brandColor: nextBrand,
     },
   })
-  revalidatePath('/dashboard/settings')
+  // Redirect explicite vers la MÊME page avec ?saved=1 :
+  // - force un fresh render avec les nouvelles valeurs côté form
+  // - rend l'état "Enregistré" visible (sinon `revalidatePath` seul re-render
+  //   silencieusement et l'utilisateur a l'impression que rien ne se passe)
+  // - flag query param qu'on lit côté page pour afficher un bandeau de confirmation
+  redirect('/dashboard/settings?saved=1')
 }
 
-export default async function SettingsPage() {
+interface PageProps {
+  // Next 15 : searchParams est async (Promise).
+  searchParams: Promise<{ saved?: string }>
+}
+
+export default async function SettingsPage({ searchParams }: PageProps) {
+  const { saved } = await searchParams
   const sessionUser = await requireUser()
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: sessionUser.id },
@@ -91,6 +103,12 @@ export default async function SettingsPage() {
         <p className="mb-12 font-editorial text-lg italic opacity-70">
           Le lien que tes Drops envoient, et la palette qui les habille.
         </p>
+
+        {saved === '1' && (
+          <div className="animate-fade-in mb-8 rounded-sm border border-olive bg-olive/10 px-4 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-olive">
+            Enregistré.
+          </div>
+        )}
 
         <form action={updateSettings} className="space-y-16">
           {/* ─── CTA URL ────────────────────────────────────────────────── */}
@@ -136,12 +154,7 @@ export default async function SettingsPage() {
             </p>
           </section>
 
-          <button
-            type="submit"
-            className="rounded-sm bg-ink px-8 py-3 font-mono text-xs uppercase tracking-[0.2em] text-cream"
-          >
-            Enregistrer
-          </button>
+          <SettingsSubmitButton />
         </form>
       </main>
     </div>
