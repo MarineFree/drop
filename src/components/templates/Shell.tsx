@@ -43,9 +43,14 @@ export function Shell({ children, expiresAt, business, brandColor }: ShellProps)
 
       <main className="mx-auto max-w-2xl px-6 pb-32">{children}</main>
 
-      <footer className="border-t border-[var(--text)]/10 px-6 py-8">
-        <p className="text-center font-mono text-[10px] uppercase tracking-[0.2em] opacity-50">
-          Drop éphémère · {business ?? 'Anonyme'}
+      <footer className="space-y-1 border-t border-[var(--text)]/10 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-[0.2em] opacity-50">
+        <p>Drop éphémère · {business ?? 'Anonyme'}</p>
+        <p>
+          Expire le{' '}
+          {new Intl.DateTimeFormat('fr-FR', {
+            dateStyle: 'long',
+            timeStyle: 'short',
+          }).format(expiresAt)}
         </p>
       </footer>
     </div>
