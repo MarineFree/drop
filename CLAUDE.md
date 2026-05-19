@@ -15,8 +15,9 @@ Hackathon **Académie IApreneurs × Hostinger** — thème 02 (création de cont
 - **IA texte** : Anthropic SDK, **Sonnet 4.6 par défaut** (`DROP_GENERATION_MODEL=sonnet|opus`), retry Zod + fallback modèle
 - **IA image** : fal.ai (Flux Schnell, ~2s) OU upload photo patron via Vercel Blob
 - **IA voice → text** : OpenAI Whisper (`whisper-1`, langue `fr`)
-- **Rate limit** : Upstash Redis (sliding window, préfixes distincts `drop:generate` / `drop:transcribe`)
-- **Tracking** : table `drop_events` custom, hash visiteur quotidien (SHA-256 + HMAC daily salt — RGPD-anonyme)
+- **Rate limit** : Upstash Redis (sliding window, préfixes distincts `drop:generate` / `drop:transcribe` / `drop:events`)
+- **Tracking** : table `drop_events` custom, hash visiteur quotidien (SHA-256 + HMAC daily salt — RGPD-anonyme). VIEW + CTA_CLICK trackés serveur, SCROLL_50/COMPLETE + INTERACTION_START/DONE via `sendBeacon` → `POST /api/events`
+- **Brand palette** : `User.brandColor` (8 palettes prédéfinies dans `src/lib/brand-palettes.ts`) injecte 5 CSS vars `--bg` `--text` `--accent` `--accent-fg` `--soft` sur Shell — **override total** de `meta.theme` IA (mort code mais conservé dans le Zod schema pour compat)
 - **Cron** : route `/api/cron/expire` (bearer `CRON_SECRET`)
 - **Déploiement** : **Vercel** (le hackathon était Hostinger-themed mais le déploiement effectif est Vercel — Next standalone)
 
@@ -48,7 +49,7 @@ src/
 │   ├── new/                  # Form de création (auth requise) — texte OU vocal
 │   ├── dashboard/
 │   │   ├── page.tsx          # Liste drops + KPIs
-│   │   ├── settings/         # Réglages user (CTA URL par défaut)
+│   │   ├── settings/         # Réglages user (CTA URL par défaut + brand palette)
 │   │   └── d/[id]/           # Détail drop + timeline events
 │   ├── d/[slug]/             # PAGES PUBLIQUES — force-dynamic, tracking VIEW
 │   └── api/
@@ -56,6 +57,7 @@ src/
 │       ├── generate/         # SSE streaming : Claude → fal.ai/Blob → createDrop
 │       ├── transcribe/       # POST audio → Whisper → string
 │       ├── upload-image/     # POST multipart → Vercel Blob
+│       ├── events/           # POST sendBeacon → SCROLL_*/INTERACTION_* tracking
 │       ├── d/[slug]/cta/     # 302 redirect + tracking CTA_CLICK
 │       └── cron/expire/      # bearer CRON_SECRET → soft-delete TTL
 ├── lib/
@@ -69,14 +71,17 @@ src/
 │   ├── auth-server.ts        # getCurrentUser / requireUser
 │   ├── db.ts                 # Prisma singleton
 │   ├── db/drops.ts           # createDrop, getActiveDropBySlug, trackEvent…
+│   ├── brand-palettes.ts     # 8 palettes complètes + getPalette + paletteStyle
+│   ├── events-client.ts      # sendEvent : sendBeacon + fetch keepalive fallback
 │   ├── ratelimit.ts          # Upstash sliding windows
 │   ├── privacy/visitor.ts    # hashVisitor (anonyme quotidien)
 │   ├── emails/               # Templates Resend magic link
 │   └── slug.ts               # Slugs lisibles depuis SlugWord pool
 ├── components/
-│   ├── templates/            # 5 templates publics + Shell + CtaButton + sections/interactions
+│   ├── d/                    # ScrollTracker (sendBeacon SCROLL_50 / SCROLL_COMPLETE)
+│   ├── templates/            # 5 templates publics + Shell (palette inject) + CtaButton + sections/interactions
 │   ├── creator/              # GenerateClient (SSE), VoiceRecorder
-│   └── dashboard/            # DashboardHeader, DropCard, KpiGrid, ShareBar, EventsTimeline
+│   └── dashboard/            # DashboardHeader, DropCard, KpiGrid, ShareBar, EventsTimeline, BrandPalettePicker, SettingsSubmitButton
 ├── middleware.ts             # Redirect /signin si pas de cookie (UX, défense-en-profondeur côté Server)
 └── prisma/schema.prisma
 ```
@@ -89,8 +94,9 @@ src/
 4. **Un seul appel Claude** (tool use, output structuré) → `DropContent` validé Zod. Sur Zod fail : retry même modèle ; sur API fail : fallback Opus→Sonnet. `modelUsed` persisté.
 5. **Image** : si photo uploadée fournie → skip fal.ai, sinon `generateImage(content.image_prompt)`
 6. `createDrop` → slug unique (P2002 retry × 5 sur pool `slug_words`) → SSE `done` avec URL
-7. Page `/d/[slug]` : `force-dynamic`, lookup `getActiveDropBySlug` (filtre `isActive + expiresAt`), track VIEW, render `TEMPLATES[templateType]` avec `MinimalRender` en filet
-8. Clic sur le CTA → `/api/d/[slug]/cta` (GET) → track `CTA_CLICK` + 302 vers `drop.ctaUrl`
+7. Page `/d/[slug]` : `force-dynamic`, lookup `getActiveDropBySlug` (filtre `isActive + expiresAt`), track VIEW, render `TEMPLATES[templateType]` avec `MinimalRender` en filet. Shell injecte la palette du patron (`User.brandColor`) via CSS vars → tous les drops d'un patron ont la même identité chromatique, indépendamment de `meta.theme` IA
+8. `ScrollTracker` Client Component émet `SCROLL_50` à 50% du scrollable, `SCROLL_COMPLETE` à 95% (fallback temps 3s/8s si le contenu tient dans le viewport). `QuizWidget` / `Poll` émettent `INTERACTION_START` + `INTERACTION_DONE` au premier engagement (idempotent via refs). Tous via `sendBeacon` → `POST /api/events`
+9. Clic sur le CTA → `/api/d/[slug]/cta` (GET) → track `CTA_CLICK` + 302 vers `drop.ctaUrl`
 
 **SSE en place** dans `/api/generate` — events `status` / `done` / `error` consommés par `GenerateClient`.
 
@@ -113,7 +119,7 @@ Claude doit **toujours** renvoyer un objet conforme à `DropContentSchema` (`src
   >,
   interaction:
     | { kind: 'none' }
-    | { kind: 'quiz', question: string, options: string[], correct_idx: number, explanation: string }
+    | { kind: 'quiz', question: string, options: { label: string, is_correct: boolean, feedback: string }[] }
     | { kind: 'poll', question: string, options: string[] },
   cta: { label: string, kind: 'contact' | 'booking' | 'devis' | 'lead' | 'newsletter', placeholder?: string },
   meta: { theme: 'cream' | 'violet' | 'dark', tone: string, estimated_read_time_sec: number }
@@ -122,7 +128,8 @@ Claude doit **toujours** renvoyer un objet conforme à `DropContentSchema` (`src
 
 **Notes opérationnelles** :
 - L'**URL cible** du CTA est PATRON-side (stockée sur `Drop.ctaUrl`, résolue à la création depuis `User.ctaUrl` ou override `/new`). L'IA ne génère **que** le label et le kind du bouton.
-- C'est Claude qui choisit le `template_type` selon le sujet — c'est ce qui rend chaque Drop visuellement différent.
+- C'est Claude qui choisit le `template_type` selon le sujet — détermine la composition / typo / layout. Mais **les couleurs viennent de `User.brandColor`**, pas de `meta.theme` (qui reste dans le schema mais est ignoré par Shell — kept-for-compat).
+- **Règle quiz vs poll** strictement énoncée dans `prompts.ts` (section `RÈGLE INTERACTION KIND`) : `quiz` uniquement si réponse objectivement vérifiable ; **toute question subjective ("Quel est ton…", "Quelle préférence…", "Pour quel usage…") doit être un poll**. Un faux quiz qui nie la réponse d'un visiteur ("Pas tout à fait" sur une préférence) est catastrophique en UX.
 
 ---
 
@@ -170,9 +177,11 @@ BLOB_READ_WRITE_TOKEN=...              # Vercel Blob (upload photos patron)
 - **Toujours** lancer `pnpm typecheck` et `pnpm lint` avant un commit.
 - **Toujours** tester la génération avec un vrai input réel (pas "lorem ipsum") quand on touche aux prompts. Les prompts cassent silencieusement.
 - **Toujours** garder les 3 drops de seed à jour — ce sont eux qu'on présente au jury.
-- **Jamais** push des secrets. `.env.local` est dans `.gitignore`.
+- **Toujours** consommer `var(--bg)` / `var(--text)` / `var(--accent)` / `var(--accent-fg)` / `var(--soft)` dans les templates publics, JAMAIS les classes Tailwind `bg-cream` / `text-violet` / etc. — Shell injecte les vars selon `User.brandColor`. Dashboard reste neutre cream/ink (pas brandé).
+- **Jamais** push des secrets. `.env.local` est dans `.gitignore`. Grep défensif avant `git add`.
 - **Jamais** changer le schema `DropContent` sans mettre à jour les 5 templates en même temps. Le template attend exactement ces clés.
 - **Jamais** déployer un drop sans `expires_at` set. Sinon il reste vivant pour toujours, contradiction avec la promesse produit.
+- **Jamais** ajouter du contenu debug visible côté `/d/[slug]` (compteurs vues, modèle, slug, etc.) — ces signaux n'ont rien à faire devant un visiteur. Dashboard `/dashboard/d/[id]` est l'endroit pour les métriques patron.
 
 ---
 
