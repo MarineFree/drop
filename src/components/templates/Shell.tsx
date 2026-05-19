@@ -1,22 +1,22 @@
 import type { ReactNode } from 'react'
-
-type Theme = 'cream' | 'violet' | 'dark'
+import { paletteStyle } from '@/lib/brand-palettes'
 
 interface ShellProps {
   children: ReactNode
   expiresAt: Date
   business: string | null
-  theme: Theme
+  /** Clé de palette (cf. `User.brandColor` / brand-palettes.ts). null → défaut violet. */
+  brandColor: string | null
 }
 
-// Sans framer-motion ni useEffect : Shell reste Server Component.
-// La page est `force-dynamic` → chaque hit SSR re-calcule timeLeft.
-// Pas d'auto-update toutes les 30s, c'est OK pour cette passe.
-const THEMES: Record<Theme, string> = {
-  cream: 'bg-cream-grain text-ink',
-  violet: 'bg-violet text-cream',
-  dark: 'bg-ink text-cream',
-}
+// Shell ne fait plus de logique de theme cream/violet/dark : elle injecte la
+// palette complète comme CSS vars sur le container racine. Tout le reste
+// (templates, atoms, interactions) consomme `var(--bg)`, `var(--text)`,
+// `var(--accent)`, `var(--accent-fg)`, `var(--soft)`.
+//
+// `meta.theme` retourné par l'IA devient mort code : le bg et la palette sont
+// pilotés exclusivement par la brand du patron. Cohérent : le patron a UNE
+// identité visuelle, ses 5 drops la suivent quelque soit le sujet.
 
 function formatTimeLeft(expiresAt: Date): string {
   const diff = Math.max(0, expiresAt.getTime() - Date.now())
@@ -25,12 +25,17 @@ function formatTimeLeft(expiresAt: Date): string {
   return `${days}j ${hours}h`
 }
 
-export function Shell({ children, expiresAt, business, theme }: ShellProps) {
+export function Shell({ children, expiresAt, business, brandColor }: ShellProps) {
   const timeLeft = formatTimeLeft(expiresAt)
+  const style = paletteStyle(brandColor)
 
   return (
-    <div className={`min-h-screen ${THEMES[theme]} font-body antialiased`}>
-      {/* mix-blend-difference garde le header lisible quel que soit le fond derrière */}
+    <div
+      style={style}
+      className="min-h-screen bg-[var(--bg)] font-body text-[var(--text)] antialiased"
+    >
+      {/* Sticky header — mix-blend-difference garde la lisibilité quel que soit
+          le contenu derrière. Couleurs via vars pour suivre la palette. */}
       <header className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 font-mono text-[11px] uppercase tracking-[0.15em] mix-blend-difference">
         <span className="opacity-70">{business ?? 'Drop'}</span>
         <span className="opacity-70">Expire dans {timeLeft}</span>
@@ -38,7 +43,7 @@ export function Shell({ children, expiresAt, business, theme }: ShellProps) {
 
       <main className="mx-auto max-w-2xl px-6 pb-32">{children}</main>
 
-      <footer className="border-t border-current/10 px-6 py-8">
+      <footer className="border-t border-[var(--text)]/10 px-6 py-8">
         <p className="text-center font-mono text-[10px] uppercase tracking-[0.2em] opacity-50">
           Drop éphémère · {business ?? 'Anonyme'}
         </p>

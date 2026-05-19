@@ -5,11 +5,14 @@ interface CtaButtonProps {
   ctaUrl: string | null
   label: string
   /**
-   * Couleurs du bouton :
-   *  - `dark`  → bg-ink text-cream     (templates fond cream : HowTo, CaseStudy, Announcement)
-   *  - `light` → bg-cream text-ink     (templates fond dark/violet : Manifesto, Quiz)
+   * Deux styles, pilotés par les CSS vars de la palette brand injectée par Shell :
+   *  - `solid`  → bg `--accent`, texte `--accent-fg`        (templates flow standard)
+   *  - `ghost`  → fond transparent, bordure + texte `--accent` (Manifesto, Quiz —
+   *               laisse respirer la composition quand l'accent est saturé)
+   *
+   * Défaut `solid` pour matcher l'ancien comportement `variant="dark"`.
    */
-  variant: 'dark' | 'light'
+  variant?: 'solid' | 'ghost'
 }
 
 // Bouton CTA partagé entre les 5 templates. Évite la duplication du wrap conditionnel
@@ -18,10 +21,13 @@ interface CtaButtonProps {
 // Pas de tracking côté client (sendBeacon) : on délègue à la route de redirect
 // `/api/d/<slug>/cta` qui logge l'event puis 302 vers `ctaUrl`. Avantage : marche
 // même JS désactivé, métriques fiables.
-export function CtaButton({ slug, ctaUrl, label, variant }: CtaButtonProps) {
+export function CtaButton({ slug, ctaUrl, label, variant = 'solid' }: CtaButtonProps) {
   if (!ctaUrl) return null
 
-  const colors = variant === 'dark' ? 'bg-ink text-cream' : 'bg-cream text-ink'
+  const colors =
+    variant === 'solid'
+      ? 'bg-[var(--accent)] text-[var(--accent-fg)]'
+      : 'bg-transparent text-[var(--accent)] border border-[var(--accent)]'
 
   return (
     <section className="my-24 text-center">

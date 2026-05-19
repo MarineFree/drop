@@ -20,12 +20,16 @@ export function Manifesto({ drop, viewCount, modelUsed }: ManifestoProps) {
   const business = drop.user.business ?? 'Anonyme'
 
   return (
-    <Shell theme="dark" expiresAt={drop.expiresAt} business={drop.user.business}>
+    <Shell
+      expiresAt={drop.expiresAt}
+      business={drop.user.business}
+      brandColor={drop.user.brandColor}
+    >
       {/* Hero — H1 seul (le subtitle est déplacé dans la composition asymétrique
           ci-dessous, avec l'image). Le manifesto reste "acte de langage" : l'image
           arrive en deuxième temps, comme un appui visuel et non comme une couverture. */}
       <div className="pt-24 pb-12">
-        <p className="mb-12 font-mono text-[11px] uppercase tracking-[0.3em] text-violet-soft">
+        <p className="mb-12 font-mono text-[11px] uppercase tracking-[0.3em] text-[var(--accent)]">
           Position · {business}
         </p>
 
@@ -55,14 +59,14 @@ export function Manifesto({ drop, viewCount, modelUsed }: ManifestoProps) {
           </div>
           {/* Subtitle gardé en `figcaption` avec le traitement "lead" (border-l violet-soft).
               md:pb-4 cale visuellement le bas du texte avec le bas de l'image. */}
-          <figcaption className="max-w-xl border-l-2 border-violet-soft pl-6 font-editorial text-2xl leading-snug opacity-85 md:order-1 md:pb-4 md:text-3xl">
+          <figcaption className="max-w-xl border-l-2 border-[var(--accent)] pl-6 font-editorial text-2xl leading-snug opacity-85 md:order-1 md:pb-4 md:text-3xl">
             {content.hook.subtitle}
           </figcaption>
         </figure>
       ) : (
         // Fallback : pas d'image en DB → on garde le subtitle dans la même zone visuelle,
         // sans la grille, pour ne pas créer un vide après le H1.
-        <p className="my-12 max-w-xl border-l-2 border-violet-soft pl-6 font-editorial text-2xl leading-snug opacity-85 md:text-3xl">
+        <p className="my-12 max-w-xl border-l-2 border-[var(--accent)] pl-6 font-editorial text-2xl leading-snug opacity-85 md:text-3xl">
           {content.hook.subtitle}
         </p>
       )}
@@ -73,7 +77,7 @@ export function Manifesto({ drop, viewCount, modelUsed }: ManifestoProps) {
           <div key={i} className="relative">
             <span
               aria-hidden="true"
-              className="absolute -left-2 top-2 font-display-alt text-2xl italic text-violet-soft opacity-50 md:-left-12"
+              className="absolute -left-2 top-2 font-display-alt text-2xl italic text-[var(--accent)] opacity-50 md:-left-12"
             >
               {ROMAN[i] ?? ''}
             </span>
@@ -82,16 +86,17 @@ export function Manifesto({ drop, viewCount, modelUsed }: ManifestoProps) {
         ))}
       </div>
 
-      {/* CTA — inversion couleurs pour dark theme (cream bg, ink text). Caché si pas d'URL. */}
+      {/* CTA — ghost (transparent + bordé accent). Lisible sur palette dark "noir"
+          comme sur les autres ; l'accent prend le rôle visuel. Caché si pas d'URL. */}
       <CtaButton
         slug={drop.slug}
         ctaUrl={drop.ctaUrl}
         label={content.cta.label}
-        variant="light"
+        variant="ghost"
       />
 
       {/* Footer interne meta — même shape que HowTo pour cohérence debug */}
-      <footer className="mt-12 space-y-1 border-t border-current/20 pt-6 font-mono text-xs opacity-50">
+      <footer className="mt-12 space-y-1 border-t border-[var(--text)]/20 pt-6 font-mono text-xs opacity-50">
         <div>
           Expire le :{' '}
           {new Intl.DateTimeFormat('fr-FR', {

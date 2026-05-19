@@ -3,12 +3,9 @@ import { useState } from 'react'
 import type { DropContent } from '@/lib/ai/schema'
 
 type PollData = Extract<DropContent['interaction'], { kind: 'poll' }>
-type Theme = 'cream' | 'violet' | 'dark'
 
 interface PollProps {
   poll: PollData
-  /** Theme du Shell parent — adapte la couleur d'accent du bouton sélectionné. */
-  theme?: Theme
 }
 
 // Distributions simulées prédéterminées par nombre d'options. Sommes à 100.
@@ -21,19 +18,16 @@ const FAKE_PERCENTAGES: Record<number, number[]> = {
   4: [38, 27, 22, 13],
 }
 
-const SELECTED_CLASSES: Record<Theme, string> = {
-  cream: 'border-olive bg-olive/15',
-  dark: 'border-violet-soft bg-violet-soft/15',
-  violet: 'border-cream bg-cream/20',
-}
+// Plus de logique de theme cream/violet/dark : on consomme directement les vars
+// de palette (`--accent`, `--text`) injectées par Shell.
+const SELECTED_CLASS = 'border-[var(--accent)] bg-[var(--accent)]/15'
 
-export function Poll({ poll, theme = 'cream' }: PollProps) {
+export function Poll({ poll }: PollProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const showResults = selectedIdx !== null
   const percentages =
     FAKE_PERCENTAGES[poll.options.length] ??
     Array<number>(poll.options.length).fill(Math.floor(100 / poll.options.length))
-  const selectedClass = SELECTED_CLASSES[theme]
 
   return (
     <section className="my-24">
@@ -51,7 +45,7 @@ export function Poll({ poll, theme = 'cream' }: PollProps) {
           const classes = [
             'w-full text-left p-5 border rounded-sm transition',
             !showResults && 'border-current/20 hover:border-current/60 cursor-pointer',
-            showResults && isSelected && selectedClass,
+            showResults && isSelected && SELECTED_CLASS,
             showResults && !isSelected && 'border-current/15 opacity-60',
           ]
             .filter(Boolean)

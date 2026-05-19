@@ -16,10 +16,14 @@ export function CaseStudy({ drop, viewCount, modelUsed }: CaseStudyProps) {
   const content = drop.content as unknown as DropContent
 
   return (
-    <Shell theme="cream" expiresAt={drop.expiresAt} business={drop.user.business}>
-      {/* Header longform : eyebrow ardoise + h1 Newsreader + sous-titre italic */}
+    <Shell
+      expiresAt={drop.expiresAt}
+      business={drop.user.business}
+      brandColor={drop.user.brandColor}
+    >
+      {/* Header longform : eyebrow accent + h1 Newsreader + sous-titre italic */}
       <header className="pt-12 pb-16">
-        <p className="mb-6 font-mono text-[11px] uppercase tracking-[0.25em] text-ardoise">
+        <p className="mb-6 font-mono text-[11px] uppercase tracking-[0.25em] text-[var(--accent)]">
           Étude de cas
         </p>
 
@@ -63,11 +67,10 @@ export function CaseStudy({ drop, viewCount, modelUsed }: CaseStudyProps) {
         slug={drop.slug}
         ctaUrl={drop.ctaUrl}
         label={content.cta.label}
-        variant="dark"
       />
 
       {/* Footer interne meta — même shape que les autres templates */}
-      <footer className="mt-12 space-y-1 border-t border-current/20 pt-6 font-mono text-xs opacity-50">
+      <footer className="mt-12 space-y-1 border-t border-[var(--text)]/20 pt-6 font-mono text-xs opacity-50">
         <div>
           Expire le :{' '}
           {new Intl.DateTimeFormat('fr-FR', {

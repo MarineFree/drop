@@ -20,6 +20,7 @@ model User {
   business      String? // "Plomberie Lyon Centre"
   trade         String? // "plombier", "coach", utilisé en context IA
   ctaUrl        String?  @db.Text // URL CTA par défaut, override possible par drop
+  brandColor    String?  // Clé de palette (cf. src/lib/brand-palettes.ts). null = défaut violet.
   emailVerified Boolean  @default(false)
   image         String?
   createdAt     DateTime @default(now())

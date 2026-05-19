@@ -101,6 +101,10 @@ Obligations actées dans `lessons.md` à exécuter avant ouverture publique du p
 
 - [ ] Retirer `getClientIdentifier` de `src/lib/ratelimit.ts` (exporté mais inutilisé — la route `/api/generate` consomme `parseClientIp` directement). Vérifier qu'aucun autre fichier ne l'importe avant suppression.
 
+## Done (passes récentes)
+
+- **Brand palette intelligente** (2026-05-19) — refonte de la première tentative (accent-only, rolled back le matin même) en **palette complète**. Shell injecte 5 CSS vars (`--bg`, `--text`, `--accent`, `--accent-fg`, `--soft`) issues d'une des 8 palettes choisies par le patron en `/dashboard/settings`. Templates consomment les vars indistinctement, `meta.theme` IA devient mort code (ignoré par Shell, conservé dans le Zod schema pour compat). 8 palettes incl. 1 dark (`noir`). Picker preview chaque palette en complet (bg + accent + label en text color réel). Drops existants : `brandColor` null → palette `violet` par défaut → équivalent au comportement avant la passe.
+
 ## Risques connus
 - `zod-to-json-schema` peut produire un JSON Schema qu'Anthropic refuse. Plan B : figer le JSON schema à la main (cf. doc 01 §4).
 - SSE peut être bloqué par certains proxies Hostinger → tester en prod avant la démo.

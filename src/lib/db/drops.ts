@@ -127,7 +127,7 @@ const PUBLIC_DROP_SELECT = {
   templateType: true,
   expiresAt: true,
   createdAt: true,
-  user: { select: { business: true, trade: true } },
+  user: { select: { business: true, trade: true, brandColor: true } },
 } satisfies Prisma.DropSelect
 
 export type PublicDrop = Prisma.DropGetPayload<{ select: typeof PUBLIC_DROP_SELECT }>

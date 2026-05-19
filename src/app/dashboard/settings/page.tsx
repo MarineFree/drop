@@ -2,44 +2,60 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
+import { BrandPalettePicker } from '@/components/dashboard/BrandPalettePicker'
 import { requireUser } from '@/lib/auth-server'
+import {
+  BRAND_PALETTE_KEYS,
+  DEFAULT_BRAND_PALETTE,
+  type BrandPaletteKey,
+} from '@/lib/brand-palettes'
 import { prisma } from '@/lib/db'
 
 export const metadata: Metadata = { title: 'Drop — réglages' }
 export const dynamic = 'force-dynamic'
 
-// Server Action — exportée pour pouvoir être référencée dans le <form action={...}>.
-// Pas dans un fichier séparé : on garde la logique colocalisée avec la page tant
-// que c'est l'unique consommateur.
-async function updateCtaUrl(formData: FormData) {
+const BRAND_KEY_SET = new Set<string>(BRAND_PALETTE_KEYS)
+
+// Server Action unifiée — gère ctaUrl + brandColor d'un seul submit. Patch partiel :
+// si un des deux champs est invalide, on traite l'autre normalement sans rejeter tout.
+async function updateSettings(formData: FormData) {
   'use server'
   const user = await requireUser()
-  const raw = formData.get('ctaUrl')
-  const value = typeof raw === 'string' ? raw.trim() : ''
 
-  let nextValue: string | null
-  if (value === '') {
-    nextValue = null
+  // ─── ctaUrl ────────────────────────────────────────────────────────────
+  const rawCta = formData.get('ctaUrl')
+  const ctaValue = typeof rawCta === 'string' ? rawCta.trim() : ''
+  let nextCtaUrl: string | null
+  let ctaInvalid = false
+  if (ctaValue === '') {
+    nextCtaUrl = null
   } else {
-    // Validation côté serveur (jamais faire confiance au form). Refuse les schémes
-    // non http(s) — la route de redirect re-vérifie aussi (defense-in-depth).
     try {
-      const u = new URL(value)
+      const u = new URL(ctaValue)
       if (u.protocol !== 'http:' && u.protocol !== 'https:') {
         throw new Error('protocol')
       }
-      nextValue = u.toString()
+      nextCtaUrl = u.toString()
     } catch {
-      // Pas de toast côté Server Action sans librairie — redirige avec query param
-      // que la page lit. Pour cette V1 on accepte un fail silencieux : le champ
-      // garde l'ancienne valeur affichée. Todo : surface l'erreur proprement.
-      return
+      nextCtaUrl = null
+      ctaInvalid = true
     }
   }
 
+  // ─── brandColor ────────────────────────────────────────────────────────
+  const rawBrand = formData.get('brandColor')
+  const brandValue = typeof rawBrand === 'string' ? rawBrand : ''
+  // Whitelist : si pas dans BRAND_PALETTE_KEYS (form bidouillé), → null = défaut.
+  const nextBrand: BrandPaletteKey | null = BRAND_KEY_SET.has(brandValue)
+    ? (brandValue as BrandPaletteKey)
+    : null
+
   await prisma.user.update({
     where: { id: user.id },
-    data: { ctaUrl: nextValue },
+    data: {
+      ...(ctaInvalid ? {} : { ctaUrl: nextCtaUrl }),
+      brandColor: nextBrand,
+    },
   })
   revalidatePath('/dashboard/settings')
 }
@@ -48,8 +64,14 @@ export default async function SettingsPage() {
   const sessionUser = await requireUser()
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: sessionUser.id },
-    select: { business: true, ctaUrl: true },
+    select: { business: true, ctaUrl: true, brandColor: true },
   })
+
+  // Key résolue pour pré-sélectionner le picker visuellement.
+  const resolvedKey: BrandPaletteKey =
+    user.brandColor && BRAND_KEY_SET.has(user.brandColor)
+      ? (user.brandColor as BrandPaletteKey)
+      : DEFAULT_BRAND_PALETTE
 
   return (
     <div className="min-h-screen bg-cream-grain text-ink">
@@ -67,11 +89,12 @@ export default async function SettingsPage() {
 
         <h1 className="mb-3 font-display text-5xl leading-[0.95]">Réglages.</h1>
         <p className="mb-12 font-editorial text-lg italic opacity-70">
-          Le lien que tes Drops envoient quand quelqu&apos;un clique sur le bouton.
+          Le lien que tes Drops envoient, et la palette qui les habille.
         </p>
 
-        <form action={updateCtaUrl} className="space-y-6">
-          <div className="space-y-2">
+        <form action={updateSettings} className="space-y-16">
+          {/* ─── CTA URL ────────────────────────────────────────────────── */}
+          <section className="space-y-2">
             <label
               htmlFor="ctaUrl"
               className="block font-mono text-[11px] uppercase tracking-[0.2em] opacity-70"
@@ -91,7 +114,27 @@ export default async function SettingsPage() {
               Pré-rempli sur le formulaire de création. Tu peux toujours l&apos;ajuster
               pour un Drop particulier. Vide = aucun bouton sur tes Drops.
             </p>
-          </div>
+          </section>
+
+          {/* ─── Brand palette ──────────────────────────────────────────── */}
+          <section className="space-y-6 border-t border-ink/15 pt-12">
+            <div>
+              <h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] opacity-70">
+                Palette de marque
+              </h2>
+              <p className="font-editorial text-lg italic leading-relaxed opacity-80">
+                Pilote l&apos;identité visuelle complète (fond, texte, accent) de tous
+                tes Drops, indistinctement du sujet. Le rendu reste cohérent
+                d&apos;un Drop à l&apos;autre.
+              </p>
+            </div>
+
+            <BrandPalettePicker selected={resolvedKey} />
+
+            <p className="font-mono text-[10px] uppercase tracking-[0.15em] opacity-50">
+              Pas de sélection = violet par défaut.
+            </p>
+          </section>
 
           <button
             type="submit"

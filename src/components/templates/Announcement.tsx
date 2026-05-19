@@ -25,17 +25,22 @@ export function Announcement({ drop, viewCount, modelUsed }: AnnouncementProps) 
   })
 
   return (
-    <Shell theme="cream" expiresAt={drop.expiresAt} business={drop.user.business}>
-      {/* Date énorme rouille — point d'entrée visuel, AVANT le titre */}
+    <Shell
+      expiresAt={drop.expiresAt}
+      business={drop.user.business}
+      brandColor={drop.user.brandColor}
+    >
+      {/* Date énorme accent — point d'entrée visuel, AVANT le titre.
+          Devient la couleur de marque : terracotta = rouille originale, sapin = vert, etc. */}
       <div className="pt-12 pb-6">
-        <p className="font-display-alt text-rouille text-[clamp(48px,10vw,120px)] leading-[0.95] tracking-[-0.03em]">
+        <p className="font-display-alt text-[var(--accent)] text-[clamp(48px,10vw,120px)] leading-[0.95] tracking-[-0.03em]">
           {today}
         </p>
       </div>
 
       {/* Bloc titre, après separator */}
-      <div className="border-t border-current/30 pt-8 pb-12">
-        <p className="mb-6 font-mono text-[11px] uppercase tracking-[0.3em] opacity-70">
+      <div className="border-t border-[var(--text)]/30 pt-8 pb-12">
+        <p className="mb-6 font-mono text-[11px] uppercase tracking-[0.3em] text-[var(--accent)]">
           Annonce · {drop.user.business ?? 'Anonyme'}
         </p>
 
@@ -67,7 +72,7 @@ export function Announcement({ drop, viewCount, modelUsed }: AnnouncementProps) 
 
       {/* Infos pratiques en bandeau horizontal — sections en grid 2 colonnes
           (vs flow vertical des autres templates). Évoque l'affichage type "horaire / lieu". */}
-      <div className="my-12 grid grid-cols-1 gap-6 border-y border-current/30 py-8 md:grid-cols-2">
+      <div className="my-12 grid grid-cols-1 gap-6 border-y border-[var(--text)]/30 py-8 md:grid-cols-2">
         {content.sections.map((s, i) => (
           <SectionRenderer key={i} section={s} />
         ))}
@@ -80,11 +85,10 @@ export function Announcement({ drop, viewCount, modelUsed }: AnnouncementProps) 
         slug={drop.slug}
         ctaUrl={drop.ctaUrl}
         label={content.cta.label}
-        variant="dark"
       />
 
       {/* Footer interne meta — shape commune aux autres templates */}
-      <footer className="mt-12 space-y-1 border-t border-current/20 pt-6 font-mono text-xs opacity-50">
+      <footer className="mt-12 space-y-1 border-t border-[var(--text)]/20 pt-6 font-mono text-xs opacity-50">
         <div>
           Expire le :{' '}
           {new Intl.DateTimeFormat('fr-FR', {

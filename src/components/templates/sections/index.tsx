@@ -12,11 +12,12 @@ function SectionText({ section }: { section: Extract<Section, { kind: 'text' }> 
   )
 }
 
-// Atom : section "stat" — gros chiffre centré en violet, label en mono petit
+// Atom : section "stat" — gros chiffre centré en accent palette, label en mono petit.
+// `--accent` injecté par Shell selon la brand du patron.
 function SectionStat({ section }: { section: Extract<Section, { kind: 'stat' }> }) {
   return (
     <section className="my-20 text-center">
-      <p className="font-display text-[clamp(80px,18vw,180px)] leading-none text-violet">
+      <p className="font-display text-[clamp(80px,18vw,180px)] leading-none text-[var(--accent)]">
         {section.value}
       </p>
       <p className="mx-auto mt-4 max-w-md font-mono text-xs uppercase tracking-[0.2em] opacity-70">

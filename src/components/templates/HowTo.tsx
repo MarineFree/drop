@@ -19,10 +19,14 @@ export function HowTo({ drop, viewCount, modelUsed }: HowToProps) {
   const content = drop.content as unknown as DropContent
 
   return (
-    <Shell theme="cream" expiresAt={drop.expiresAt} business={drop.user.business}>
+    <Shell
+      expiresAt={drop.expiresAt}
+      business={drop.user.business}
+      brandColor={drop.user.brandColor}
+    >
       {/* Hero — eyebrow / titre géant / sous-titre éditorial */}
       <header className="pt-12 pb-20">
-        <p className="mb-8 font-mono text-[11px] uppercase tracking-[0.25em] text-violet">
+        <p className="mb-8 font-mono text-[11px] uppercase tracking-[0.25em] text-[var(--accent)]">
           Guide pratique · {content.meta.estimated_read_time_sec}s
         </p>
 
@@ -56,7 +60,7 @@ export function HowTo({ drop, viewCount, modelUsed }: HowToProps) {
 
       {/* Interaction : Quiz ou Poll selon kind. Local state, pas de tracking serveur. */}
       {content.interaction.kind === 'quiz' && <QuizWidget quiz={content.interaction} />}
-      {content.interaction.kind === 'poll' && <Poll poll={content.interaction} theme="cream" />}
+      {content.interaction.kind === 'poll' && <Poll poll={content.interaction} />}
 
       {/* CTA — bouton cliquable qui passe par /api/d/<slug>/cta pour tracker
           puis rediriger vers `drop.ctaUrl`. Caché si `ctaUrl` est null. */}
@@ -64,12 +68,11 @@ export function HowTo({ drop, viewCount, modelUsed }: HowToProps) {
         slug={drop.slug}
         ctaUrl={drop.ctaUrl}
         label={content.cta.label}
-        variant="dark"
       />
 
       {/* Footer interne : meta debug pour la phase actuelle (date, vues, modèle).
           Le Shell a son propre footer de branding par-dessous. */}
-      <footer className="mt-12 border-t border-current/20 pt-6 space-y-1 font-mono text-xs opacity-50">
+      <footer className="mt-12 border-t border-[var(--text)]/20 pt-6 space-y-1 font-mono text-xs opacity-50">
         <div>
           Expire le :{' '}
           {new Intl.DateTimeFormat('fr-FR', {
