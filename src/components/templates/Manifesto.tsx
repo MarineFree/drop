@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import type { AiModel } from '@prisma/client'
 import type { DropContent } from '@/lib/ai/schema'
 import type { PublicDrop } from '@/lib/db/drops'
@@ -20,7 +21,9 @@ export function Manifesto({ drop, viewCount, modelUsed }: ManifestoProps) {
 
   return (
     <Shell theme="dark" expiresAt={drop.expiresAt} business={drop.user.business}>
-      {/* Hero — pas d'image (Docs/04 §9 : "le manifeste est un acte de langage") */}
+      {/* Hero — H1 seul (le subtitle est déplacé dans la composition asymétrique
+          ci-dessous, avec l'image). Le manifesto reste "acte de langage" : l'image
+          arrive en deuxième temps, comme un appui visuel et non comme une couverture. */}
       <div className="pt-24 pb-12">
         <p className="mb-12 font-mono text-[11px] uppercase tracking-[0.3em] text-violet-soft">
           Position · {business}
@@ -30,12 +33,39 @@ export function Manifesto({ drop, viewCount, modelUsed }: ManifestoProps) {
         <h1 className="font-display-alt italic text-[clamp(56px,12vw,140px)] leading-[0.9] tracking-[-0.03em]">
           {content.hook.title}
         </h1>
+      </div>
 
-        {/* Sous-titre traité comme une "lead" éditoriale, border-l violet-soft */}
-        <p className="mt-12 max-w-xl border-l-2 border-violet-soft pl-6 font-editorial text-2xl leading-snug opacity-85 md:text-3xl">
+      {/* Composition asymétrique : subtitle "lead" à gauche, image portrait 4/5 à droite.
+          Mobile-first : flow vertical par défaut (image d'abord pour donner le ton),
+          puis grid 2 colonnes en md+. Image en grayscale pour ne pas jurer avec bg-ink
+          et pour soutenir le ton éditorial assertif du manifesto. */}
+      {drop.imageUrl ? (
+        <figure className="my-12 grid gap-8 md:grid-cols-[1fr_1.2fr] md:items-end md:gap-12">
+          {/* Image en premier dans le DOM mais reorderée en md+ via order utilities
+              pour garder la grille gauche=texte / droite=image. */}
+          <div className="relative aspect-[4/5] overflow-hidden md:order-2">
+            <Image
+              src={drop.imageUrl}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover grayscale brightness-90"
+              priority
+            />
+          </div>
+          {/* Subtitle gardé en `figcaption` avec le traitement "lead" (border-l violet-soft).
+              md:pb-4 cale visuellement le bas du texte avec le bas de l'image. */}
+          <figcaption className="max-w-xl border-l-2 border-violet-soft pl-6 font-editorial text-2xl leading-snug opacity-85 md:order-1 md:pb-4 md:text-3xl">
+            {content.hook.subtitle}
+          </figcaption>
+        </figure>
+      ) : (
+        // Fallback : pas d'image en DB → on garde le subtitle dans la même zone visuelle,
+        // sans la grille, pour ne pas créer un vide après le H1.
+        <p className="my-12 max-w-xl border-l-2 border-violet-soft pl-6 font-editorial text-2xl leading-snug opacity-85 md:text-3xl">
           {content.hook.subtitle}
         </p>
-      </div>
+      )}
 
       {/* Sections avec numérotation romaine en marge gauche (cf. Docs/04 §9) */}
       <div className="mt-24">
