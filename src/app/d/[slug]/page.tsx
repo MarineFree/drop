@@ -1,8 +1,7 @@
 import type { ComponentType } from 'react'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
-import { EventKind, type AiModel, type TemplateType } from '@prisma/client'
-import { prisma } from '@/lib/db'
+import { EventKind, type TemplateType } from '@prisma/client'
 import { getActiveDropBySlug, trackEvent, type PublicDrop } from '@/lib/db/drops'
 import { hashVisitor } from '@/lib/privacy/visitor'
 import { ScrollTracker } from '@/components/d/ScrollTracker'
@@ -24,16 +23,10 @@ interface Props {
 
 interface TemplateProps {
   drop: PublicDrop
-  viewCount: number
-  modelUsed: AiModel
 }
 
-// Registre des templates implémentés. Tout templateType absent du map tombe
-// sur MinimalRender (cf. ?? plus bas) — pattern extensible : pour ajouter
-// CASE_STUDY / QUIZ / ANNOUNCEMENT, il suffit d'importer et de référencer ici.
-// Registre des 5 templates. À ce stade, `MinimalRender` (le fallback `??`)
-// devient théoriquement inatteignable — on le garde comme filet de sécurité
-// si un nouveau TemplateType est ajouté au schema Prisma sans son template dédié.
+// Registre des 5 templates. `MinimalRender` reste le filet de sécurité si un
+// nouveau TemplateType est ajouté au schema Prisma sans son template dédié.
 const TEMPLATES: Partial<Record<TemplateType, ComponentType<TemplateProps>>> = {
   HOW_TO: HowTo,
   MANIFESTO: Manifesto,
@@ -47,14 +40,6 @@ export default async function DropPage({ params }: Props) {
 
   const drop = await getActiveDropBySlug(slug)
   if (!drop) notFound()
-
-  // `getActiveDropBySlug` retourne le PublicDrop (cf. PUBLIC_DROP_SELECT) qui
-  // n'inclut pas viewCount / modelUsed. 2e point-lookup sur PK indexée pour
-  // ces champs — coût négligeable et on ne touche pas au helper.
-  const extras = await prisma.drop.findUniqueOrThrow({
-    where: { id: drop.id },
-    select: { viewCount: true, modelUsed: true },
-  })
 
   // Tracking VIEW côté serveur. `await` pour pouvoir attraper l'erreur DB,
   // mais on swallow : un tracking raté ne doit jamais casser le render.
@@ -76,7 +61,7 @@ export default async function DropPage({ params }: Props) {
       {/* ScrollTracker : émet SCROLL_50 / SCROLL_COMPLETE via sendBeacon vers
           /api/events. Ne rend rien visuellement, ne casse pas la composition. */}
       <ScrollTracker dropSlug={drop.slug} />
-      <Template drop={drop} viewCount={extras.viewCount} modelUsed={extras.modelUsed} />
+      <Template drop={drop} />
     </>
   )
 }

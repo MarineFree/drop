@@ -89,11 +89,6 @@ export function Poll({ poll, dropSlug }: PollProps) {
         })}
       </div>
 
-      {showResults && (
-        <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.2em] opacity-50">
-          Résultats simulés · pas d&apos;agrégation réelle en phase 1
-        </p>
-      )}
     </section>
   )
 }

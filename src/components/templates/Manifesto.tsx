@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import type { AiModel } from '@prisma/client'
 import type { DropContent } from '@/lib/ai/schema'
 import type { PublicDrop } from '@/lib/db/drops'
 import { CtaButton } from './CtaButton'
@@ -8,14 +7,12 @@ import { SectionRenderer } from './sections'
 
 interface ManifestoProps {
   drop: PublicDrop
-  viewCount: number
-  modelUsed: AiModel
 }
 
 // Zod schema borne sections à min(2).max(4) → I à IV couvre tous les cas.
 const ROMAN = ['I', 'II', 'III', 'IV'] as const
 
-export function Manifesto({ drop, viewCount, modelUsed }: ManifestoProps) {
+export function Manifesto({ drop }: ManifestoProps) {
   const content = drop.content as unknown as DropContent
   const business = drop.user.business ?? 'Anonyme'
 
@@ -95,18 +92,6 @@ export function Manifesto({ drop, viewCount, modelUsed }: ManifestoProps) {
         variant="ghost"
       />
 
-      {/* Footer interne meta — même shape que HowTo pour cohérence debug */}
-      <footer className="mt-12 space-y-1 border-t border-[var(--text)]/20 pt-6 font-mono text-xs opacity-50">
-        <div>
-          Expire le :{' '}
-          {new Intl.DateTimeFormat('fr-FR', {
-            dateStyle: 'long',
-            timeStyle: 'short',
-          }).format(drop.expiresAt)}
-        </div>
-        <div>Vues (avant ce hit) : {viewCount}</div>
-        <div>Modèle : {modelUsed}</div>
-      </footer>
     </Shell>
   )
 }

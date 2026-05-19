@@ -1,18 +1,15 @@
 import Image from 'next/image'
-import type { AiModel } from '@prisma/client'
 import type { DropContent } from '@/lib/ai/schema'
 import type { PublicDrop } from '@/lib/db/drops'
 
 interface MinimalRenderProps {
   drop: PublicDrop
-  viewCount: number
-  modelUsed: AiModel
 }
 
-// Rendu transitoire pour les templates non encore implémentés (manifesto, case-study,
-// quiz, announcement). Sera remplacé par leur template dédié au fur et à mesure.
-// Volontairement neutre / non-stylé — pas de palette éditoriale, pas de fonts custom.
-export function MinimalRender({ drop, viewCount, modelUsed }: MinimalRenderProps) {
+// Fallback générique si TemplateType n'a pas d'implémentation dédiée. En prod
+// les 5 templates sont tous registrés → MinimalRender est théoriquement
+// inatteignable, gardé comme filet de sécurité.
+export function MinimalRender({ drop }: MinimalRenderProps) {
   const content = drop.content as unknown as DropContent
 
   return (
@@ -99,18 +96,6 @@ export function MinimalRender({ drop, viewCount, modelUsed }: MinimalRenderProps
         <span className="text-xs text-gray-500">cta.kind : {content.cta.kind}</span>
       </div>
 
-      <footer className="space-y-1 border-t pt-4 text-xs text-gray-500">
-        <div>Template : {drop.templateType}</div>
-        <div>
-          Expire le :{' '}
-          {new Intl.DateTimeFormat('fr-FR', {
-            dateStyle: 'long',
-            timeStyle: 'short',
-          }).format(drop.expiresAt)}
-        </div>
-        <div>Vues (avant ce hit) : {viewCount}</div>
-        <div>Modèle : {modelUsed}</div>
-      </footer>
     </main>
   )
 }

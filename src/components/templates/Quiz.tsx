@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import type { AiModel } from '@prisma/client'
 import type { DropContent } from '@/lib/ai/schema'
 import type { PublicDrop } from '@/lib/db/drops'
 import { CtaButton } from './CtaButton'
@@ -10,11 +9,9 @@ import { QuizWidget } from './interactions/QuizWidget'
 
 interface QuizTemplateProps {
   drop: PublicDrop
-  viewCount: number
-  modelUsed: AiModel
 }
 
-export function Quiz({ drop, viewCount, modelUsed }: QuizTemplateProps) {
+export function Quiz({ drop }: QuizTemplateProps) {
   const content = drop.content as unknown as DropContent
 
   return (
@@ -85,18 +82,6 @@ export function Quiz({ drop, viewCount, modelUsed }: QuizTemplateProps) {
         variant="ghost"
       />
 
-      {/* Footer interne meta — même shape que HowTo / Manifesto pour cohérence debug */}
-      <footer className="mt-12 space-y-1 border-t border-[var(--text)]/20 pt-6 font-mono text-xs opacity-50">
-        <div>
-          Expire le :{' '}
-          {new Intl.DateTimeFormat('fr-FR', {
-            dateStyle: 'long',
-            timeStyle: 'short',
-          }).format(drop.expiresAt)}
-        </div>
-        <div>Vues (avant ce hit) : {viewCount}</div>
-        <div>Modèle : {modelUsed}</div>
-      </footer>
     </Shell>
   )
 }

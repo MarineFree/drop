@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import type { AiModel } from '@prisma/client'
 import type { DropContent } from '@/lib/ai/schema'
 import type { PublicDrop } from '@/lib/db/drops'
 import { CtaButton } from './CtaButton'
@@ -8,11 +7,9 @@ import { SectionRenderer } from './sections'
 
 interface CaseStudyProps {
   drop: PublicDrop
-  viewCount: number
-  modelUsed: AiModel
 }
 
-export function CaseStudy({ drop, viewCount, modelUsed }: CaseStudyProps) {
+export function CaseStudy({ drop }: CaseStudyProps) {
   const content = drop.content as unknown as DropContent
 
   return (
@@ -69,18 +66,6 @@ export function CaseStudy({ drop, viewCount, modelUsed }: CaseStudyProps) {
         label={content.cta.label}
       />
 
-      {/* Footer interne meta — même shape que les autres templates */}
-      <footer className="mt-12 space-y-1 border-t border-[var(--text)]/20 pt-6 font-mono text-xs opacity-50">
-        <div>
-          Expire le :{' '}
-          {new Intl.DateTimeFormat('fr-FR', {
-            dateStyle: 'long',
-            timeStyle: 'short',
-          }).format(drop.expiresAt)}
-        </div>
-        <div>Vues (avant ce hit) : {viewCount}</div>
-        <div>Modèle : {modelUsed}</div>
-      </footer>
     </Shell>
   )
 }
