@@ -1,5 +1,36 @@
 import { AiModel, InteractionType, PrismaClient, SlugKind, TemplateType } from '@prisma/client'
-import { DropContentSchema, type DropContent } from '../src/lib/ai/schema'
+
+// Type minimal inline — duplique la forme de `DropContent` du Zod schema (cf.
+// src/lib/ai/schema.ts) MAIS sans importer depuis `src/` qui n'est pas présent
+// au runtime du conteneur Docker (Next standalone n'embarque que `.next/`).
+// Le contenu hardcodé plus bas est typé au build, donc cette duplication ne
+// crée pas de risque de drift silencieux : un Zod schema modifié casse aussi
+// les templates publics qui consomment la même shape.
+type DropContent = {
+  template_type: 'how-to' | 'manifesto' | 'case-study' | 'quiz' | 'announcement'
+  hook: { title: string; subtitle: string }
+  image_prompt: string
+  sections: Array<
+    | { kind: 'text'; heading: string; body: string }
+    | { kind: 'stat'; value: string; label: string }
+    | { kind: 'checklist'; items: string[] }
+    | { kind: 'comparison'; before: string; after: string }
+  >
+  interaction:
+    | { kind: 'none' }
+    | {
+        kind: 'quiz'
+        question: string
+        options: Array<{ label: string; is_correct: boolean; feedback: string }>
+      }
+    | { kind: 'poll'; question: string; options: string[] }
+  cta: {
+    label: string
+    kind: 'contact' | 'booking' | 'devis' | 'lead' | 'newsletter'
+    placeholder?: string
+  }
+  meta: { theme: 'cream' | 'violet' | 'dark'; tone: string; estimated_read_time_sec: number }
+}
 
 const prisma = new PrismaClient()
 
@@ -292,10 +323,11 @@ interface DropSeedSpec {
 }
 
 async function upsertSeedDrop(spec: DropSeedSpec): Promise<void> {
-  // Validation Zod défensive — sécurité supplémentaire si le contenu hardcodé
-  // diverge d'une évolution future du schema. Le throw remontera clairement
-  // au seed, pas un INSERT silencieusement KO.
-  const validated = DropContentSchema.parse(spec.content)
+  // Pas de Zod validation ici : le type `DropContent` ci-dessus contraint déjà
+  // la shape côté `tsc`, et les templates publics rejecteraient à l'affichage
+  // une row mal formée. Validation Zod runtime gardée sur le pipeline IA réel
+  // (cf. /api/generate), pas sur le seed hardcodé.
+  const validated = spec.content
   const hasInteraction = validated.interaction.kind !== 'none'
   const sectionCount = validated.sections.length
 
