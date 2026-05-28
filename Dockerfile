@@ -85,7 +85,8 @@ RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
 # manuellement depuis le conteneur (cf. DEPLOY.md §5).
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Pas de dossier `public/` dans ce repo (zéro asset statique externe, tout est
+# inline dans `src/app/globals.css` ou en data: URI). Ne pas tenter de COPY.
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 # Le bin prisma CLI + tsx sont utiles pour exécuter `prisma db push` et
 # `tsx prisma/seed.ts` depuis le terminal Dokploy (bootstrap initial).
