@@ -1,4 +1,4 @@
-# 07 — Pitch Vidéo (5 min)
+﻿# 07 — Pitch Vidéo (5 min)
 
 Structure, script complet, storyboard, et conseils de tournage. Tout est pensé pour une vidéo enregistrée (pas live) — donc tu peux refaire des prises.
 
@@ -161,7 +161,7 @@ C'est LE moment. Tu enregistres ton écran en direct.
 
 *« Drop n'écrit pas un post de plus. Drop livre une page qui appartient à la marque. Sept jours plus tard, elle disparaît. Reste la donnée, le lead, et la prochaine idée. »*
 
-`[ÉCRAN : URL drop.tld + "Disponible pour le jury"]`
+`[ÉCRAN : URL getdrop.cloud + "Disponible pour le jury"]`
 
 *« Le lien est dans la description. Allez essayer. »*
 

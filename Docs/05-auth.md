@@ -1,4 +1,4 @@
-# 05 — Auth
+﻿# 05 — Auth
 
 Magic link uniquement. Pas de mot de passe, pas d'OAuth (Google/Github n'a aucun sens pour un patron de PME locale).
 
@@ -30,9 +30,9 @@ pnpm add -D @types/node
 
 ```
 BETTER_AUTH_SECRET=$(openssl rand -base64 32)
-BETTER_AUTH_URL=https://drop.tld         # ou http://localhost:3000 en dev
+BETTER_AUTH_URL=https://getdrop.cloud         # ou http://localhost:3000 en dev
 RESEND_API_KEY=re_...
-EMAIL_FROM="Drop <hello@drop.tld>"
+EMAIL_FROM="Drop <hello@getdrop.cloud>"
 ```
 
 ---
@@ -460,6 +460,6 @@ export function SignOutButton() {
 ## 14. Limites & points de fragilité
 
 - **Resend en free tier = 100 emails/jour**. Ça suffit largement pour le hackathon. Au-delà, soit on paye, soit on switch sur Postmark.
-- **Si le domaine `drop.tld` n'est pas vérifié DKIM/SPF chez Resend**, les emails atterrissent en spam. Vérifier le DNS J-3 minimum avant la démo. Pas J-1 : DKIM peut prendre 24h.
+- **Si le domaine `getdrop.cloud` n'est pas vérifié DKIM/SPF chez Resend**, les emails atterrissent en spam. Vérifier le DNS J-3 minimum avant la démo. Pas J-1 : DKIM peut prendre 24h.
 - **Magic link en démo live** : si tu présentes en direct la première connexion, prévoir une connexion Wi-Fi fiable + un compte email accessible sur scène (pas Gmail qui peut demander une vérification 2FA imprévue). Idéalement, montre la connexion depuis un compte déjà créé en seed.
 - **Pas de récupération sans email**. Si le patron perd accès à sa boîte mail, il perd accès à Drop. C'est acceptable en hackathon, pas en prod. Pour la prod : ajouter un second facteur ou une procédure manuelle.

@@ -1,4 +1,4 @@
-# 08 — Livraison de l'Outil au Jury
+﻿# 08 — Livraison de l'Outil au Jury
 
 Fournir Drop au jury, ce n'est pas juste donner une URL. C'est s'assurer que **n'importe quel membre du jury, sans contexte, peut tester en 60 secondes et obtenir un wahou**. Avec un plan B si quelque chose plante.
 
@@ -80,9 +80,9 @@ const DEMO_TOKENS: Record<string, string> = {
 ```
 
 URLs à donner au jury :
-- `https://drop.tld/jury/jury-plombier-h4k7`
-- `https://drop.tld/jury/jury-coach-m9p2`
-- `https://drop.tld/jury/jury-restaurant-x3q8`
+- `https://getdrop.cloud/jury/jury-plombier-h4k7`
+- `https://getdrop.cloud/jury/jury-coach-m9p2`
+- `https://getdrop.cloud/jury/jury-restaurant-x3q8`
 
 Chaque lien connecte directement à un compte démo prêt, avec ses 3-5 drops déjà générés et leurs statistiques peuplées.
 
@@ -178,7 +178,7 @@ export default function JuryHomePage() {
         <ul className="space-y-3 font-mono text-sm">
           <li>→ <a href="https://github.com/…" className="underline underline-offset-4">Code source GitHub</a></li>
           <li>→ <a href="/Drop_Pitch_Hackathon.pdf" className="underline underline-offset-4">Deck PDF (9 pages)</a></li>
-          <li>→ <a href="mailto:contact@drop.tld" className="underline underline-offset-4">Contact équipe</a></li>
+          <li>→ <a href="mailto:contact@getdrop.cloud" className="underline underline-offset-4">Contact équipe</a></li>
         </ul>
       </div>
     </div>
@@ -210,7 +210,7 @@ function DemoLink({ number, label, description, links }: {
 }
 ```
 
-C'est cette page que tu mets en description de ta vidéo. URL courte : `drop.tld/jury`.
+C'est cette page que tu mets en description de ta vidéo. URL courte : `getdrop.cloud/jury`.
 
 ---
 
@@ -223,7 +223,7 @@ Si le hackathon demande le code, le repo doit être lisible en 3 minutes. Struct
 
 Le pop-up store du contenu web. Une phrase devient un mini-site éphémère.
 
-→ **Démo live** : https://drop.tld/jury
+→ **Démo live** : https://getdrop.cloud/jury
 → **Vidéo de pitch** : https://youtu.be/…
 → **PDF du deck** : [Drop_Pitch_Hackathon.pdf](./Drop_Pitch_Hackathon.pdf)
 
@@ -269,7 +269,7 @@ Le README ne doit pas vendre Drop (la vidéo le fait). Il doit prouver que **le 
 
 Le jury va tester sur 24-48h. Tu dois savoir si ça tombe en panne. Trois choses minimum :
 
-**1. Uptime check externe.** Configure un check toutes les 5 min sur `drop.tld/api/health` :
+**1. Uptime check externe.** Configure un check toutes les 5 min sur `getdrop.cloud/api/health` :
 - Service gratuit : UptimeRobot, Better Stack, Hyperping
 - Si down : notification SMS / Slack / Telegram
 - Le endpoint `/api/health` retourne juste `{ ok: true, db: 'ok', ai: 'ok' }`
@@ -327,7 +327,7 @@ Préparer trois scénarios.
 
 ### Scénario 3 — Hostinger lui-même down
 
-**Symptôme** : `drop.tld` ne résout pas.
+**Symptôme** : `getdrop.cloud` ne résout pas.
 
 **Plan B** : un domaine de secours sur Vercel ou Netlify (gratuit) qui héberge la vidéo + un message *« On a un incident, voici la vidéo et le PDF. »*. URL : par exemple `drop-backup.vercel.app`. Activé seulement si nécessaire.
 
@@ -339,7 +339,7 @@ Précise dans la description vidéo : *« En cas d'incident sur le site principa
 
 Deux jours avant la soumission, fais ces tests :
 
-- [ ] Ouvre `drop.tld/jury` depuis 3 appareils différents (Chrome Mac, Safari iPhone, Firefox Linux).
+- [ ] Ouvre `getdrop.cloud/jury` depuis 3 appareils différents (Chrome Mac, Safari iPhone, Firefox Linux).
 - [ ] Clique sur chaque CTA, génère un Drop frais sur chaque compte démo.
 - [ ] Mesure le temps de génération (doit être < 90 s).
 - [ ] Ouvre 5 onglets en même temps qui génèrent simultanément. Vérifie que ça tient (concurrent requests).
@@ -356,7 +356,7 @@ Liste à fournir au hackathon :
 | Livrable | Format | Où |
 |---|---|---|
 | Vidéo de pitch | MP4 1080p ≤ 200 Mo | Plateforme hackathon + YouTube en non-listé |
-| URL de la démo | `drop.tld/jury` | Lien direct dans le formulaire |
+| URL de la démo | `getdrop.cloud/jury` | Lien direct dans le formulaire |
 | Code source | Repo GitHub public | URL dans la soumission |
 | Deck PDF | 9 pages, sous-fichier | Joint à la soumission |
 | Description | Texte court | Champ "description" du formulaire |
@@ -364,7 +364,7 @@ Liste à fournir au hackathon :
 
 **Description courte type pour le formulaire (max 500 caractères) :**
 
-> *Drop transforme une phrase en mini-site web éphémère, hébergé chez Hostinger, qui s'auto-détruit en 7 jours. Le pop-up store du contenu web pour les TPE et PME. Aucun savoir-faire technique requis : input léger en entrée, expérience web complète en sortie, avec tracking et capture de lead intégrés. Démo en accès direct sans inscription sur drop.tld/jury.*
+> *Drop transforme une phrase en mini-site web éphémère, hébergé chez Hostinger, qui s'auto-détruit en 7 jours. Le pop-up store du contenu web pour les TPE et PME. Aucun savoir-faire technique requis : input léger en entrée, expérience web complète en sortie, avec tracking et capture de lead intégrés. Démo en accès direct sans inscription sur getdrop.cloud/jury.*
 
 ---
 

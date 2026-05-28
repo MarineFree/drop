@@ -1,0 +1,43 @@
+# Ne JAMAIS ship les secrets / dev artifacts dans l'image.
+.env
+.env.*
+!.env.example
+
+# Source control + IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Build artifacts (regénérés dans l'étage builder)
+node_modules
+.next
+out
+dist
+*.tsbuildinfo
+
+# Logs + temp
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Documentation lourde — pas nécessaire au runtime
+Docs
+docs
+tasks
+README*.md
+DEPLOY.md
+*.pdf
+
+# Tests + dev tooling
+coverage
+.eslintcache
+.cache
+playwright-report
+test-results
+
+# Docker meta (auto-référence)
+Dockerfile
+.dockerignore

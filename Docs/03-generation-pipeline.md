@@ -1,4 +1,4 @@
-# 03 — Pipeline de Génération
+﻿# 03 — Pipeline de Génération
 
 Le flow complet : input patron → mini-site live, avec streaming pour le wahou en démo.
 
@@ -383,7 +383,7 @@ export async function POST(req: NextRequest) {
 Côté Hostinger, configurer un cron horaire qui appelle :
 
 ```bash
-curl -X POST https://drop.tld/api/cron/expire \
+curl -X POST https://getdrop.cloud/api/cron/expire \
   -H "Authorization: Bearer $CRON_SECRET"
 ```
 
