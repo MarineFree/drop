@@ -18,8 +18,11 @@ ARG NODE_VERSION=20-alpine
 FROM node:${NODE_VERSION} AS deps
 WORKDIR /app
 
-# Pour compiler natifs (lightningcss, etc.) côté alpine.
-RUN apk add --no-cache libc6-compat
+# libc6-compat : nécessaire pour les natifs (lightningcss, etc.)
+# openssl : Prisma 5 link contre libssl runtime → alpine 3.18+ ship openssl 3
+#   et le binary engine `linux-musl-openssl-3.0.x` (cf. binaryTargets de
+#   prisma/schema.prisma) en dépend.
+RUN apk add --no-cache libc6-compat openssl
 
 # corepack pour respecter `packageManager` du package.json. `enable` est sûr,
 # `prepare --activate` télécharge la version exacte requise sans prompt.
@@ -36,7 +39,7 @@ RUN pnpm install --frozen-lockfile
 FROM node:${NODE_VERSION} AS builder
 WORKDIR /app
 
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 
 # Récupération node_modules (déjà compilés) + sources.
@@ -68,20 +71,25 @@ ENV HOSTNAME=0.0.0.0
 # Volume persistant Dokploy. Doit matcher le mount déclaré dans la GUI.
 ENV UPLOAD_DIR=/data/uploads
 
+# openssl runtime : requis par le binary engine Prisma `linux-musl-openssl-3.0.x`.
+# Sans ça : `libssl.so.3: cannot open shared object file` au premier query.
+RUN apk add --no-cache openssl
+
 # User non-root — bonne pratique sécurité + alignement avec mounts Dokploy.
 RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
 
-# Standalone : Next embarque uniquement les deps nécessaires au runtime dans
-# `.next/standalone/`. On copie aussi `.next/static` (servi par Next), `public`,
-# et le prisma client générique généré dans node_modules.
+# Standalone : Next embarque tout ce qui est traçable au runtime dans
+# `.next/standalone/` (server.js + node_modules traced incluant Prisma client
+# et binary engines). On copie en plus `.next/static` (assets servis par Next)
+# et `public/`. Le schema Prisma est utile pour `prisma db push` / `seed` lancés
+# manuellement depuis le conteneur (cf. DEPLOY.md §5).
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-# Prisma : le runtime Next a besoin du client généré ET du schema pour les
-# requêtes raw / les introspections éventuelles.
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+# Le bin prisma CLI + tsx sont utiles pour exécuter `prisma db push` et
+# `tsx prisma/seed.ts` depuis le terminal Dokploy (bootstrap initial).
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Volume mount target — créé en avance avec les bonnes permissions pour que
 # Dokploy puisse monter dessus sans erreur EACCES.

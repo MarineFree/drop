@@ -2,7 +2,11 @@
 // Fidèle à Docs/02-database.md §2. Pas de migrations pendant le hackathon : `pnpm db:push`.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // `native` = dev local (mac/windows). `linux-musl-openssl-3.0.x` = runtime
+  // alpine 3.18+ qui ship OpenSSL 3 (le défaut Prisma ciblait openssl 1.1, plus
+  // dispo dans alpine moderne → libssl.so.1.1 not found au runtime).
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
