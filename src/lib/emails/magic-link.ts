@@ -1,7 +1,21 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+// Instanciation paresseuse — `new Resend(undefined)` throw au constructor.
+// En éager côté module scope, ça casse `next build` (qui charge tous les
+// modules de route pour collecter les page data) si la var d'env n'est pas
+// présente au build (cas Dokploy : env injecté au runtime, pas au build).
+let _resend: Resend | null = null
+function getResend(): Resend {
+  if (_resend) return _resend
+  const key = process.env.RESEND_API_KEY
+  if (!key) {
+    throw new Error(
+      '[magic-link] RESEND_API_KEY is not set — refusing to instantiate Resend client'
+    )
+  }
+  _resend = new Resend(key)
+  return _resend
+}
 
 interface SendMagicLinkArgs {
   email: string
@@ -9,7 +23,8 @@ interface SendMagicLinkArgs {
 }
 
 export async function sendMagicLinkEmail({ email, url }: SendMagicLinkArgs): Promise<void> {
-  const { error } = await resend.emails.send({
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+  const { error } = await getResend().emails.send({
     from: `Drop <${FROM_EMAIL}>`,
     to: email,
     subject: 'Ton lien de connexion à Drop',

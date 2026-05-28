@@ -27,7 +27,18 @@ function getPrimaryModel(): ModelTag {
   return 'sonnet'
 }
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+// Lazy : `new Anthropic({apiKey: undefined})` throw au constructor — casse
+// `next build` côté Dokploy (env injecté au runtime, pas au build).
+let _client: Anthropic | null = null
+function getClient(): Anthropic {
+  if (_client) return _client
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    throw new Error('[ai/generate] ANTHROPIC_API_KEY is not set')
+  }
+  _client = new Anthropic({ apiKey })
+  return _client
+}
 
 // JSON Schema dérivé du Zod schema. Si Anthropic refuse à l'exécution, figer
 // le résultat à la main (cf. Docs/01-ai-contract.md §4).
@@ -61,7 +72,7 @@ async function callAndValidate(
     ? `${userInput}\n\n[SYSTÈME — TENTATIVE PRÉCÉDENTE INVALIDE]\nLe précédent appel à generate_drop a violé le schema sur : ${zodFeedback.paths.join(', ')}.\nDétails : ${zodFeedback.details}.\nRecommence en respectant strictement toutes les bornes min/max et max-length du schema. Sois particulièrement vigilant sur la concision des champs courts (titles, tone, labels).`
     : userInput
 
-  const response = await client.messages.create({
+  const response = await getClient().messages.create({
     model: MODEL_IDS[model],
     max_tokens: MAX_TOKENS,
     system: SYSTEM_PROMPT,
