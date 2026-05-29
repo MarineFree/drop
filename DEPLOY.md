@@ -143,10 +143,14 @@ UPLOAD_DIR=/data/uploads
 
 Une fois le service app **Running** (vert) et la DB Postgres up :
 
-1. Dokploy → service `drop` (app) → onglet **Terminal** (ouvre un shell dans le conteneur runtime).
-2. Lancer dans l'ordre :
+1. Dokploy → service `drop-app` → onglet **General** → bouton **Open Terminal** (sur v0.29.x ça ouvre une modale "Docker Terminal").
+2. Choisir l'onglet **/bin/sh** (PAS Bash — alpine n'embarque pas bash).
+3. Le shell ouvre dans `/` et non `/app` (le `WORKDIR /app` du Dockerfile n'est pas respecté côté exec). **Faire `cd /app` AVANT toute commande**.
+4. Lancer dans l'ordre :
 
-```bash
+```sh
+cd /app
+
 # Pousser le schema Prisma (création des tables)
 node_modules/.bin/prisma db push --schema=prisma/schema.prisma --accept-data-loss
 
@@ -154,53 +158,63 @@ node_modules/.bin/prisma db push --schema=prisma/schema.prisma --accept-data-los
 node node_modules/tsx/dist/cli.mjs prisma/seed.ts
 ```
 
-> Le conteneur runtime contient déjà `node_modules` (copié au build). `pnpm` n'est PAS installé en runtime — d'où les commandes via le chemin direct des binaires.
+> Le conteneur runtime contient le `node_modules` complet copié depuis le builder (Dockerfile §runner). `pnpm` n'est PAS installé en runtime — d'où les commandes via le chemin direct des binaires.
 
 Sortie attendue :
 ```
-✓ slug_words : 333 mots
-✓ users démo : { plombier: '…', coach: '…', resto: '…' }
+✓ slug_words : 340 mots
+✓ users démo : { plombier: 'cmp...', coach: 'cmp...', resto: 'cmp...' }
 ✓ drops démo : 3 drops (slugs demo-plombier-chaudiere-novembre, demo-coach-changement-boite, demo-resto-menu-semaine)
 → Re-runner ce seed est sûr : tout est en upsert sur clé unique.
 ```
 
-Pour re-seed (idempotent, met aussi à jour content/expiresAt) :
-```bash
-node node_modules/tsx/dist/cli.mjs prisma/seed.ts
+Pour re-seed plus tard (idempotent — met à jour content/expiresAt sans dupliquer) :
+```sh
+cd /app && node node_modules/tsx/dist/cli.mjs prisma/seed.ts
 ```
 
 ---
 
 ## 6. Brancher le cron horaire `/api/cron/expire`
 
-La route soft-delete les drops dont `expiresAt < now()` (`isActive: false`). Sans ce job, les drops expirés restent visibles. Deux options :
+La route soft-delete les drops dont `expiresAt < now()` (`isActive: false`). Sans ce job, les drops expirés restent visibles indéfiniment.
 
-### Option A — Dokploy Schedules (recommandé)
+### Option A — Dokploy Schedules
 
-1. Dokploy → projet `drop` → service app → onglet **Schedules**.
+**Disponible à partir de Dokploy v0.30**. Sur les versions plus anciennes (v0.29.x), l'onglet Schedules n'existe pas — utiliser l'option B.
+
+1. Dokploy → projet `drop` → service `drop-app` → onglet **Schedules**.
 2. **Create Schedule** :
    - Name : `expire-drops`
    - Cron expression : `0 * * * *` (toutes les heures, minute 0)
    - Command :
-     ```bash
+     ```sh
      curl -fsS -X POST https://getdrop.cloud/api/cron/expire \
        -H "Authorization: Bearer $CRON_SECRET"
      ```
-   - **Run inside container** : `false` (l'appel passe par le réseau public, c'est OK et évite les pbs de DNS interne).
-3. Tester en cliquant **Run Now** → la réponse JSON doit ressembler à `{"ok":true,"expired":0,"timestamp":"…"}`.
+   - **Run inside container** : `false` (l'appel passe par le réseau public Traefik, plus simple).
+3. Tester en cliquant **Run Now** → réponse JSON `{"ok":true,"expired":0,"timestamp":"…"}`.
 
-### Option B — crontab système du VPS
-
-Si tu préfères piloter via cron Linux :
+### Option B — crontab système du VPS (recommandé si Dokploy < v0.30)
 
 ```bash
 ssh root@<IP-VPS>
 crontab -e
-# Ajouter :
+# Ajouter cette ligne (UN seul espace entre chaque champ cron, espaces NORMAUX, pas de tab) :
 0 * * * * curl -fsS -X POST https://getdrop.cloud/api/cron/expire -H "Authorization: Bearer <CRON_SECRET>" >/dev/null 2>&1
 ```
 
-> Le secret est inline dans crontab → root-only en lecture (`chmod 600 /var/spool/cron/crontabs/root`).
+Sécurité — le secret est inline dans crontab donc le fichier doit être root-only :
+```bash
+chmod 600 /var/spool/cron/crontabs/root
+```
+
+Vérifier que ça tourne après la 1ère heure de minute 0 passée :
+```bash
+grep CRON /var/log/syslog | tail
+```
+
+Si rien dans syslog → vérifier que le service cron est up : `systemctl status cron`.
 
 ---
 
@@ -236,7 +250,7 @@ Le service `/api/upload-image` écrit dans `UPLOAD_DIR` via l'abstraction `src/l
 - [ ] Signin : sur `/signin`, entre un email Resend valide → clic du magic link → arrivée sur `/dashboard` sans erreur INVALID_TOKEN
 - [ ] `/new` : génère un drop test avec photo upload → le drop s'ouvre et l'image s'affiche depuis `/uploads/…`
 - [ ] CTA : clique le bouton sur un drop → 302 vers la cible + `ctaCount` du drop s'incrémente côté dashboard
-- [ ] Cron : depuis Dokploy Schedules, clic **Run Now** → `{"ok":true,"expired":N}` avec N ≥ 0
+- [ ] Cron : `curl -fsS -X POST https://getdrop.cloud/api/cron/expire -H "Authorization: Bearer <CRON_SECRET>"` → `{"ok":true,"expired":N}` avec N ≥ 0
 
 ---
 
@@ -283,12 +297,15 @@ Si le terminal GUI Dokploy n'est pas pratique :
 
 ```bash
 # Trouver le container app
-docker ps | grep drop
+docker ps | grep drop-app
 
 # Entrer dedans
 docker exec -it <container-id> sh
 
-# Une fois dans le conteneur, mêmes commandes que la section 5 :
+# IMPORTANT : le shell s'ouvre dans `/`, pas dans `/app`
+cd /app
+
+# Push schema + seed
 node_modules/.bin/prisma db push --schema=prisma/schema.prisma --accept-data-loss
 node node_modules/tsx/dist/cli.mjs prisma/seed.ts
 ```
@@ -323,3 +340,29 @@ pnpm typecheck && pnpm lint
 # Build local (sait que le standalone échoue sur Windows — c'est OK)
 pnpm build
 ```
+
+---
+
+## Annexe — Pièges rencontrés au premier déploiement (résolus)
+
+Les bugs / friction réels rencontrés en live sur le 1er deploy Hostinger/Dokploy, déjà corrigés dans le repo mais documentés pour ne pas être perdus :
+
+1. **Dokploy v0.29.5 — Postgres pas en accès direct dans Create Service.** Cliquer **Create Service → Database** puis sélectionner PostgreSQL dans la modale qui suit. La version v0.30+ propose Postgres en raccourci.
+
+2. **Build path mal configuré.** Dokploy a deux champs côté Build : `Docker File` (chemin vers le Dockerfile, défaut OK = vide) et `Docker Context Path` (le contexte, à mettre `.`). Mettre `Dockerfile` dans Context Path donne `cd: can't cd to .../code/Dockerfile`. Solution : laisser Docker File vide + Context Path = `.`.
+
+3. **SDK clients eager au top-level cassent `next build`.** Dokploy n'injecte pas les env vars au build (contrairement à Vercel). `new Resend(undefined)`, `new Anthropic(undefined)`, etc. throw au constructor pendant la collecte des page data. Tous les clients (`src/lib/emails/magic-link.ts`, `src/lib/ai/{whisper,generate,image}.ts`) ont été passés en **lazy** (fonction `getClient()`) — instanciation au runtime, pas au module load.
+
+4. **Prisma `libssl.so.1.1: not found`.** Alpine 3.18+ ship OpenSSL 3, pas 1.1. Fix : `binaryTargets = ["native", "linux-musl-openssl-3.0.x"]` dans `prisma/schema.prisma` + `apk add openssl` dans les stages builder et runner du Dockerfile.
+
+5. **`COPY /app/node_modules/.prisma` et `/app/node_modules/@prisma` échouent en pnpm.** Le hoist pnpm ne crée pas ces chemins au top-level (tout est dans `.pnpm/.../node_modules/`). Solution : `COPY --from=builder /app/node_modules ./node_modules` en entier. Image plus grosse (~250 MB de plus) mais permet aussi de lancer `prisma db push` + `tsx seed.ts` depuis le runtime.
+
+6. **`COPY /app/public` échoue — le repo n'a pas de dossier `public/`.** Tout est inline (data: URIs dans globals.css, fonts via `next/font`). Ligne supprimée du Dockerfile.
+
+7. **Terminal Docker Dokploy : `bash: executable file not found`.** Alpine n'embarque pas bash. Toujours choisir **/bin/sh** dans le sélecteur de shell.
+
+8. **Terminal ouvre dans `/`, pas dans `/app`.** Le `WORKDIR /app` du Dockerfile n'est pas respecté côté exec. **Toujours `cd /app` AVANT toute commande** (prisma, tsx, etc.).
+
+9. **`prisma/seed.ts` importait `../src/lib/ai/schema` au runtime.** `src/` n'est pas dans le standalone Next. Solution : inliner un type `DropContent` minimal directement dans `seed.ts` + supprimer la validation Zod runtime (le contenu est typé TS au build, validation Zod gardée sur le pipeline IA réel).
+
+10. **DATABASE_URL : caractères spéciaux du mot de passe à URL-encoder.** Le `?` du password Postgres devient `%3F` dans la connection string (sinon parsé comme début du query string).

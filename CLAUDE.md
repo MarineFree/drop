@@ -13,13 +13,13 @@ Hackathon **Académie IApreneurs × Hostinger** — thème 02 (création de cont
 - **DB** : PostgreSQL (Supabase pooler) via Prisma 5.22
 - **Auth** : Better Auth (magic link via Resend, sessions DB)
 - **IA texte** : Anthropic SDK, **Sonnet 4.6 par défaut** (`DROP_GENERATION_MODEL=sonnet|opus`), retry Zod + fallback modèle
-- **IA image** : fal.ai (Flux Schnell, ~2s) OU upload photo patron via Vercel Blob
+- **IA image** : fal.ai (Flux Schnell, ~2s) OU upload photo patron via volume Docker `/data/uploads` (abstraction `src/lib/storage/`, prête à basculer S3)
 - **IA voice → text** : OpenAI Whisper (`whisper-1`, langue `fr`)
 - **Rate limit** : Upstash Redis (sliding window, préfixes distincts `drop:generate` / `drop:transcribe` / `drop:events`)
 - **Tracking** : table `drop_events` custom, hash visiteur quotidien (SHA-256 + HMAC daily salt — RGPD-anonyme). VIEW + CTA_CLICK trackés serveur, SCROLL_50/COMPLETE + INTERACTION_START/DONE via `sendBeacon` → `POST /api/events`
 - **Brand palette** : `User.brandColor` (8 palettes prédéfinies dans `src/lib/brand-palettes.ts`) injecte 5 CSS vars `--bg` `--text` `--accent` `--accent-fg` `--soft` sur Shell — **override total** de `meta.theme` IA (mort code mais conservé dans le Zod schema pour compat)
 - **Cron** : route `/api/cron/expire` (bearer `CRON_SECRET`)
-- **Déploiement** : **Vercel** (le hackathon était Hostinger-themed mais le déploiement effectif est Vercel — Next standalone)
+- **Déploiement** : **Hostinger VPS + Dokploy** sur `getdrop.cloud` (Dockerfile multi-stage Node 20-alpine, Traefik + Let's Encrypt, Postgres interne `drop-db`, volume persistant `drop-uploads`). Cf. `DEPLOY.md` pour la procédure complète + pièges rencontrés.
 
 ---
 
@@ -56,7 +56,7 @@ src/
 │       ├── auth/[...all]/    # Better Auth handler
 │       ├── generate/         # SSE streaming : Claude → fal.ai/Blob → createDrop
 │       ├── transcribe/       # POST audio → Whisper → string
-│       ├── upload-image/     # POST multipart → Vercel Blob
+│       ├── upload-image/     # POST multipart → src/lib/storage (FilesystemStorage → /data/uploads)
 │       ├── events/           # POST sendBeacon → SCROLL_*/INTERACTION_* tracking
 │       ├── d/[slug]/cta/     # 302 redirect + tracking CTA_CLICK
 │       └── cron/expire/      # bearer CRON_SECRET → soft-delete TTL
@@ -88,7 +88,7 @@ src/
 
 ### Flow de création (le truc à ne pas casser)
 
-1. Patron remplit `/new` : **textarea** OU **bouton "Parler à la place"** (MediaRecorder → POST `/api/transcribe` → Whisper → remplit le textarea, éditable) + optionnel **photo perso** (POST `/api/upload-image` → Vercel Blob) + optionnel **URL CTA** (pré-remplie depuis `User.ctaUrl`)
+1. Patron remplit `/new` : **textarea** OU **bouton "Parler à la place"** (MediaRecorder → POST `/api/transcribe` → Whisper → remplit le textarea, éditable) + optionnel **photo perso** (POST `/api/upload-image` → `getStorage().put()` → volume `/data/uploads`) + optionnel **URL CTA** (pré-remplie depuis `User.ctaUrl`)
 2. Submit → POST `/api/generate` (SSE)
 3. Auth check + rate limit (`drop:generate`, per-IP, 10/h)
 4. **Un seul appel Claude** (tool use, output structuré) → `DropContent` validé Zod. Sur Zod fail : retry même modèle ; sur API fail : fallback Opus→Sonnet. `modelUsed` persisté.
@@ -167,7 +167,7 @@ BETTER_AUTH_SECRET=...                 # openssl rand -base64 32
 BETTER_AUTH_URL=http://localhost:3000
 RESEND_API_KEY=...
 RESEND_FROM_EMAIL=onboarding@resend.dev # sandbox (livre uniquement au compte Resend)
-BLOB_READ_WRITE_TOKEN=...              # Vercel Blob (upload photos patron)
+UPLOAD_DIR=/data/uploads               # Volume Docker persistant Dokploy (uploads photos patron)
 ```
 
 ---

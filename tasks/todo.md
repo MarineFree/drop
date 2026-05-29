@@ -1,7 +1,7 @@
 # TODO — Drop
 
 ## État actuel
-Bootstrap + 7 corrections architecturales appliquées (fallback IA, modèle par défaut, slug cache, dénormalisation, visitor hash, rate limit, décisions documentées). Aucune logique métier branchée sur les routes API — toutes en 501 (sauf le rate limit qui mord déjà sur `/api/generate`).
+**Déployé en prod sur https://getdrop.cloud** (VPS Hostinger + Dokploy + Traefik + Let's Encrypt, Postgres interne `drop-db`, volume persistant `drop-uploads`). DB bootstrappée avec 340 slug_words + 3 users démo (plombier/coach/resto) + 3 drops démo. `/api/health` et les 3 drops démo répondent 200. Détails du deploy + pièges rencontrés dans `DEPLOY.md`.
 
 ---
 
@@ -105,6 +105,7 @@ Obligations actées dans `lessons.md` à exécuter avant ouverture publique du p
 
 ## Done (passes récentes)
 
+- **Déploiement prod Hostinger/Dokploy** (2026-05-28) — VPS Hostinger KVM 4 + Dokploy v0.29.5, domaine `getdrop.cloud` (A apex + CNAME www) + Let's Encrypt via Traefik, Postgres interne `drop-db-g9wpny`, volume persistant `drop-uploads` mounté sur `/data/uploads`. Dockerfile multi-stage Node 20-alpine (Prisma binaryTargets `linux-musl-openssl-3.0.x`, openssl runtime). Tous les SDK clients (Resend, Anthropic, OpenAI, fal.ai) passés en **lazy getter** pour ne pas casser `next build` (env injecté au runtime, pas au build). Seed `prisma/seed.ts` self-contained (type `DropContent` inliné, plus d'import depuis `src/`). DB bootstrappée manuellement via `docker exec /bin/sh` puis `cd /app && node_modules/.bin/prisma db push` + `node node_modules/tsx/dist/cli.mjs prisma/seed.ts`. Cron `/api/cron/expire` à brancher (Dokploy Schedules pas dispo sur v0.29.5, à faire en crontab système — cf. DEPLOY.md §6 Option B). **Hors scope** mais à traiter avant jury : `/jury` direct-access, monitoring UptimeRobot.
 - **Tracking engagement** (2026-05-19) — `POST /api/events` (rate-limit `drop:events` 60/h/IP), helper `sendEvent` (sendBeacon + fetch keepalive fallback), `ScrollTracker` Client Component sur `/d/[slug]` (paliers 50% / 95%, fallback temps 3s/8s sur pages courtes), instrumentation `QuizWidget` + `Poll` avec INTERACTION_START / DONE (idempotent via refs). EventsTimeline dashboard avait déjà KIND_LABEL/KIND_COLOR pour les 4 nouveaux kinds — rendu automatique.
 - **Brand palette intelligente** (2026-05-19) — refonte de la première tentative (accent-only, rolled back le matin même) en **palette complète**. Shell injecte 5 CSS vars (`--bg`, `--text`, `--accent`, `--accent-fg`, `--soft`) issues d'une des 8 palettes choisies par le patron en `/dashboard/settings`. Templates consomment les vars indistinctement, `meta.theme` IA devient mort code (ignoré par Shell, conservé dans le Zod schema pour compat). 8 palettes incl. 1 dark (`noir`). Picker preview chaque palette en complet (bg + accent + label en text color réel). Drops existants : `brandColor` null → palette `violet` par défaut → équivalent au comportement avant la passe.
 
