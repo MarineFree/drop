@@ -1,36 +1,22 @@
 'use client'
 import { useRef, useState, type FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 
-// Terminal interactif "mock" — pas de vraie génération IA (c'est le hero
-// d'une landing, on veut zéro friction + zéro coût). Simule juste :
-//   typed input → spinner "analyse..." → spinner "format = X, rédaction..." →
-//   carte résultat avec thumbnail + slug + bouton copier.
-// L'idée : le visiteur voit IMMÉDIATEMENT à quoi sert Drop sans cliquer sur Signin.
+// Terminal d'amorce — pas une vraie démo IA (pas de génération à blanc côté
+// landing) MAIS pas une simulation trompeuse non plus. Le visiteur tape sa
+// phrase, voit deux secondes de "analyse / composition" pour illustrer le
+// pipeline réel (90s côté /new), puis on lui propose explicitement de se
+// connecter pour générer SON drop avec SA phrase (sauvegardée en sessionStorage,
+// restaurée par GenerateClient au mount /new).
 
-// Slugs RÉELS de drops déjà seedés en prod (cf. prisma/seed.ts seedDemoDrops).
-// → le bouton "Copier" produit une URL qui ouvre VRAIMENT un drop, pas un 404.
-const SAMPLES = [
-  { fmt: 'Annonce', slug: 'demo-resto-menu-semaine' },
-  { fmt: 'Guide pratique', slug: 'demo-plombier-chaudiere-novembre' },
-  { fmt: 'Quiz', slug: 'demo-coach-changement-boite' },
-] as const
+type Phase = 'idle' | 'analyzing' | 'composing' | 'ready'
 
-type Sample = (typeof SAMPLES)[number]
-type Phase = 'idle' | 'analyzing' | 'composing' | 'done'
-
-function pickSample(query: string): Sample {
-  const q = query.trim().toLowerCase()
-  if (q.includes('comment') || q.includes('guide')) return SAMPLES[1]
-  if (q.includes('pourquoi') || q.includes('quiz') || q.includes('test'))
-    return SAMPLES[2]
-  return SAMPLES[0]
-}
+const STORAGE_KEY = 'drop:pendingPhrase'
 
 export function HeroDemo() {
+  const router = useRouter()
   const [input, setInput] = useState('')
   const [phase, setPhase] = useState<Phase>('idle')
-  const [result, setResult] = useState<Sample | null>(null)
-  const [copied, setCopied] = useState(false)
   const [recording, setRecording] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const timeoutsRef = useRef<Array<ReturnType<typeof setTimeout>>>([])
@@ -40,20 +26,22 @@ export function HeroDemo() {
     timeoutsRef.current = []
   }
 
-  function run(value?: string) {
+  function run() {
     if (phase === 'analyzing' || phase === 'composing') return
     clearTimers()
-    const query =
-      value ?? input.trim() ?? "J'ouvre ma boulangerie samedi, venez goûter"
-    const chosen = pickSample(query)
-    setResult(null)
-    setCopied(false)
+    const phrase = input.trim() || "J'ouvre ma boulangerie samedi, venez goûter"
     setPhase('analyzing')
     timeoutsRef.current.push(setTimeout(() => setPhase('composing'), 820))
     timeoutsRef.current.push(
       setTimeout(() => {
-        setResult(chosen)
-        setPhase('done')
+        // Sauvegarde la phrase pour la pré-remplir sur /new après le signin
+        // (cf. GenerateClient `useEffect` qui lit STORAGE_KEY au mount).
+        try {
+          sessionStorage.setItem(STORAGE_KEY, phrase)
+        } catch {
+          /* swallow — sessionStorage indispo (private mode) → tant pis */
+        }
+        setPhase('ready')
       }, 1750)
     )
   }
@@ -66,8 +54,6 @@ export function HeroDemo() {
   function handleMic() {
     if (recording || phase === 'analyzing' || phase === 'composing') return
     setRecording(true)
-    // Simule 1.5s d'enregistrement → remplit l'input, focus, MAIS ne lance PAS
-    // la génération. Le visiteur clique "Drop ✦" lui-même → garde le contrôle.
     timeoutsRef.current.push(
       setTimeout(() => {
         setRecording(false)
@@ -77,15 +63,9 @@ export function HeroDemo() {
     )
   }
 
-  function handleCopy() {
-    if (!result) return
-    // URL ABSOLUE — ce qui sera collé dans WhatsApp/SMS doit ouvrir vraiment.
-    // Les slugs `demo-*` sont seedés en prod (cf. prisma/seed.ts).
-    navigator.clipboard
-      ?.writeText(`https://getdrop.cloud/d/${result.slug}`)
-      .catch(() => {})
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1800)
+  function handleContinue() {
+    // La phrase est déjà dans sessionStorage (cf. run). Navigation vers /signin.
+    router.push('/signin')
   }
 
   return (
@@ -190,47 +170,33 @@ export function HeroDemo() {
             {`> analyse de l'intention…`}
           </Row>
         )}
-        {phase === 'composing' && result === null && (
+        {phase === 'composing' && (
           <Row>
             <span className="lp-spinner" />
-            {`> format détecté · rédaction + image…`}
+            {`> format détecté · prêt à générer pour de vrai`}
           </Row>
         )}
-        {phase === 'done' && result && (
-          <div className="flex items-center gap-3.5 p-3">
-            <span
-              className="h-[66px] w-[92px] flex-none rounded-xl border"
-              style={{
-                borderColor: 'var(--lp-accent)',
-                background:
-                  'repeating-linear-gradient(135deg, oklch(82% 0.15 196 / 0.18) 0 8px, transparent 8px 16px)',
-                boxShadow: '0 0 24px -8px var(--lp-glow)',
-              }}
-            />
-            <div className="min-w-0 flex-1">
-              <p
-                className="font-[var(--font-lp-display)] text-[15px] font-semibold"
-                style={{ color: 'var(--lp-text)' }}
-              >
-                {result.fmt} généré ✦
-              </p>
-              <p
-                className="truncate font-[var(--font-mono)] text-[13px]"
-                style={{ color: 'var(--lp-accent)' }}
-              >
-                getdrop.cloud/d/{result.slug}
-              </p>
-            </div>
+        {phase === 'ready' && (
+          <div className="flex flex-wrap items-center gap-3 p-3">
+            <p
+              className="min-w-0 flex-1 font-[var(--font-mono)] text-[13px]"
+              style={{ color: 'var(--lp-muted)' }}
+            >
+              Ta phrase est prête. Connecte-toi pour lancer la vraie génération
+              (90 secondes, image + texte + lien).
+            </p>
             <button
               type="button"
-              onClick={handleCopy}
-              className="flex-none rounded-lg border px-3 py-2 font-[var(--font-lp-display)] text-[13px] font-semibold transition"
+              onClick={handleContinue}
+              className="flex-none rounded-lg px-4 py-2.5 font-[var(--font-lp-display)] text-[13px] font-semibold transition"
               style={{
-                borderColor: copied ? 'var(--lp-accent)' : 'var(--lp-line)',
-                color: copied ? 'var(--lp-accent)' : 'var(--lp-text)',
+                background: 'var(--lp-accent)',
+                color: 'oklch(20% 0.04 230)',
+                boxShadow:
+                  '0 0 0 1px var(--lp-accent), 0 8px 24px -8px var(--lp-glow)',
               }}
             >
-              {copied ? 'Copié ✓' : 'Copier'}
+              Continuer →
             </button>
           </div>
         )}

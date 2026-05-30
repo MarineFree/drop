@@ -1,8 +1,18 @@
 'use client'
-import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from 'react'
 import type { Route } from 'next'
 import { useRouter } from 'next/navigation'
 import { VoiceRecorder } from './VoiceRecorder'
+
+// Phrase éventuellement sauvegardée par le terminal de la landing (HeroDemo).
+// Clé partagée entre les 2 composants.
+const PENDING_PHRASE_KEY = 'drop:pendingPhrase'
 
 type Phase = 'idle' | 'uploading' | 'streaming' | 'done' | 'error'
 
@@ -57,6 +67,22 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
   const [file, setFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState<string | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
+  // Si le visiteur a tapé une phrase sur la landing (HeroDemo) avant de se
+  // connecter, on la restaure ici au mount et on vide sessionStorage.
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem(PENDING_PHRASE_KEY)
+      if (pending && pending.trim()) {
+        setInput(pending)
+        sessionStorage.removeItem(PENDING_PHRASE_KEY)
+        // Focus auto pour signaler au patron qu'il peut éditer avant submit.
+        setTimeout(() => textareaRef.current?.focus(), 0)
+      }
+    } catch {
+      /* swallow — sessionStorage indispo */
+    }
+  }, [])
+
   // Pre-rempli avec le défaut user — éditable. Vide = pas d'override.
   const [ctaUrl, setCtaUrl] = useState(defaultCtaUrl ?? '')
   const [phase, setPhase] = useState<Phase>('idle')
