@@ -18,7 +18,12 @@ const FALLBACK_VERIFY_ERROR =
 
 export function SignInClient() {
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirect') ?? '/dashboard'
+  // Toujours rediriger vers /dashboard après le magic link, même si l'utilisateur
+  // arrivait initialement depuis /new (middleware redirige avec ?redirect=/new).
+  // Choix produit : le patron doit pouvoir revoir / ajuster ses réglages (palette,
+  // ctaUrl, business/trade) avant d'attaquer un nouveau drop. Depuis le dashboard
+  // il a un bouton "Nouveau Drop" à un clic.
+  const redirectTo = '/dashboard'
   // Si Better Auth a redirigé vers /signin?error=... après échec de vérification,
   // on affiche un toast au-dessus du form.
   const verifyError = searchParams.get('error')
