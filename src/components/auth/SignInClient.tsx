@@ -24,8 +24,6 @@ export function SignInClient() {
   // ctaUrl, business/trade) avant d'attaquer un nouveau drop. Depuis le dashboard
   // il a un bouton "Nouveau Drop" à un clic.
   const redirectTo = '/dashboard'
-  // Si Better Auth a redirigé vers /signin?error=... après échec de vérification,
-  // on affiche un toast au-dessus du form.
   const verifyError = searchParams.get('error')
 
   const [email, setEmail] = useState('')
@@ -43,8 +41,6 @@ export function SignInClient() {
       const { error: authError } = await authClient.signIn.magicLink({
         email: email.trim(),
         callbackURL: redirectTo,
-        // Errors de vérif (token invalid/expired) reviennent ici plutôt que sur /dashboard
-        // où le middleware mangerait le query param ?error=.
         errorCallbackURL: '/signin',
       })
       if (authError) {
@@ -67,23 +63,35 @@ export function SignInClient() {
   // Phase "sent" — confirmation que l'email est parti
   if (phase === 'sent') {
     return (
-      <div className="animate-fade-in space-y-6">
-        <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-violet">
+      <div className="space-y-6">
+        <p
+          className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.25em]"
+          style={{ color: 'var(--lp-accent)' }}
+        >
           Email envoyé
         </p>
-        <h1 className="font-display text-[clamp(40px,8vw,64px)] leading-[0.95] tracking-[-0.02em]">
+        <h1
+          className="font-[var(--font-lp-display)] text-[clamp(40px,8vw,64px)] font-bold leading-[0.95] tracking-[-0.03em]"
+        >
           Regarde ta boîte.
         </h1>
-        <p className="max-w-sm font-editorial text-lg leading-relaxed opacity-80">
-          On t&apos;a envoyé un lien à <strong>{email}</strong>. Il marche pendant 15 minutes.
-          Pense à vérifier tes spams.
+        <p
+          className="max-w-sm text-lg leading-relaxed"
+          style={{ color: 'var(--lp-muted)' }}
+        >
+          On t&apos;a envoyé un lien à <strong style={{ color: 'var(--lp-text)' }}>{email}</strong>.
+          Il marche pendant 15 minutes. Pense à vérifier tes spams.
         </p>
-        <p className="pt-2 font-mono text-[10px] uppercase tracking-[0.2em] opacity-50">
+        <p
+          className="pt-2 font-[var(--font-mono)] text-[10px] uppercase tracking-[0.2em]"
+          style={{ color: 'var(--lp-faint)' }}
+        >
           Pas reçu ?{' '}
           <button
             type="button"
             onClick={handleRetry}
-            className="underline opacity-70 transition hover:opacity-100"
+            className="underline transition hover:opacity-100"
+            style={{ color: 'var(--lp-muted)' }}
           >
             renvoyer
           </button>
@@ -101,26 +109,41 @@ export function SignInClient() {
   return (
     <div className="space-y-8">
       <header className="space-y-6">
-        <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-violet">
+        <p
+          className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.25em]"
+          style={{ color: 'var(--lp-accent)' }}
+        >
           Connexion
         </p>
-        <h1 className="font-display text-[clamp(48px,10vw,72px)] leading-[0.95] tracking-[-0.02em]">
+        <h1
+          className="font-[var(--font-lp-display)] text-[clamp(48px,10vw,72px)] font-bold leading-[0.95] tracking-[-0.03em]"
+        >
           Drop.
         </h1>
-        <p className="max-w-sm font-editorial text-lg leading-relaxed opacity-80">
+        <p
+          className="max-w-sm text-lg leading-relaxed"
+          style={{ color: 'var(--lp-muted)' }}
+        >
           Entre ton email. On t&apos;envoie un lien pour te connecter sans mot de passe.
         </p>
       </header>
 
       {/* Toast d'erreur post-magic-link-fail */}
       {verifyErrorMessage && phase === 'idle' && (
-        <div className="animate-fade-in border-l-2 border-rouille bg-rouille/5 p-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-rouille">
+        <div
+          className="border-l-2 p-4"
+          style={{
+            borderColor: 'oklch(72% 0.15 30)',
+            background: 'oklch(72% 0.15 30 / 0.08)',
+          }}
+        >
+          <p
+            className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.2em]"
+            style={{ color: 'oklch(72% 0.15 30)' }}
+          >
             Lien invalide ou expiré
           </p>
-          <p className="mt-2 font-editorial text-base leading-relaxed">
-            {verifyErrorMessage}
-          </p>
+          <p className="mt-2 text-base leading-relaxed">{verifyErrorMessage}</p>
         </div>
       )}
 
@@ -132,26 +155,41 @@ export function SignInClient() {
           onChange={e => setEmail(e.target.value)}
           placeholder="prenom@taboite.fr"
           disabled={submitting}
-          className="w-full rounded-sm border border-current/30 bg-transparent px-5 py-4 font-mono text-sm outline-none transition placeholder:opacity-40 focus:border-current"
+          className="w-full rounded-xl border bg-transparent px-5 py-4 font-[var(--font-mono)] text-sm outline-none transition focus:border-[var(--lp-accent)]"
+          style={{
+            borderColor: 'var(--lp-line)',
+            color: 'var(--lp-text)',
+            background: 'var(--lp-panel)',
+          }}
         />
         <button
           type="submit"
           disabled={submitting || !email.trim()}
-          className="w-full rounded-sm bg-ink px-8 py-4 font-mono text-xs uppercase tracking-[0.2em] text-cream transition disabled:cursor-not-allowed disabled:opacity-30"
+          className="w-full rounded-xl px-8 py-4 font-[var(--font-lp-display)] text-base font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
+          style={{
+            background: 'var(--lp-accent)',
+            color: 'oklch(20% 0.04 230)',
+            boxShadow:
+              '0 0 0 1px var(--lp-accent), 0 8px 30px -8px var(--lp-glow)',
+          }}
         >
           {submitting ? 'Envoi…' : "M'envoyer le lien"}
         </button>
       </form>
 
       {phase === 'error' && error && (
-        <div className="animate-fade-in space-y-3">
-          <p className="font-mono text-sm uppercase tracking-wider text-rouille">
+        <div className="space-y-3">
+          <p
+            className="font-[var(--font-mono)] text-sm uppercase tracking-wider"
+            style={{ color: 'oklch(72% 0.15 30)' }}
+          >
             {error}
           </p>
           <button
             type="button"
             onClick={handleRetry}
-            className="rounded-sm border border-current/40 px-6 py-2 font-mono text-xs uppercase tracking-[0.2em] transition hover:border-current"
+            className="rounded-xl border px-6 py-2 font-[var(--font-mono)] text-xs uppercase tracking-[0.2em] transition hover:border-[var(--lp-accent)]"
+            style={{ borderColor: 'var(--lp-line)', color: 'var(--lp-text)' }}
           >
             Réessayer
           </button>

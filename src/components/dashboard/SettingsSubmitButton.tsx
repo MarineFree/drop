@@ -11,7 +11,12 @@ export function SettingsSubmitButton() {
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="rounded-sm bg-ink px-8 py-3 font-mono text-xs uppercase tracking-[0.2em] text-cream transition hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+      className="rounded-xl px-8 py-3 font-[var(--font-lp-display)] text-sm font-semibold transition hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+      style={{
+        background: 'var(--lp-accent)',
+        color: 'oklch(20% 0.04 230)',
+        boxShadow: '0 0 0 1px var(--lp-accent), 0 8px 30px -8px var(--lp-glow)',
+      }}
     >
       {pending ? 'Enregistrement…' : 'Enregistrer'}
     </button>

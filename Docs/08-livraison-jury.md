@@ -1,51 +1,36 @@
-﻿# 08 — Livraison de l'Outil au Jury
+# 08 — Livraison Hackathon
 
-Fournir Drop au jury, ce n'est pas juste donner une URL. C'est s'assurer que **n'importe quel membre du jury, sans contexte, peut tester en 60 secondes et obtenir un wahou**. Avec un plan B si quelque chose plante.
+Procédure de livraison et garde-fous opérationnels pour rendre Drop accessible pendant la phase d'évaluation : accès direct sans signin, monitoring, rate-limit, plans B en cas de panne.
 
 ---
 
 ## 1. Stack de déploiement
 
-Conformément à l'angle Hostinger du pitch, **Drop doit être déployé chez Hostinger**. C'est cohérent avec ton positionnement. Deux options chez eux :
+Drop est hébergé sur **VPS Hostinger + Dokploy** (Dockerfile multi-stage Node 20-alpine, Traefik + Let's Encrypt, Postgres interne, volume persistant pour les uploads). Cf. `DEPLOY.md` pour la procédure complète et les pièges rencontrés au premier déploiement.
 
-| Option | Pour qui | Coût | Limite |
-|---|---|---|---|
-| **VPS Hostinger** | Tu maîtrises Linux/Docker | ~10€/mois | Tout faire à la main |
-| **Cloud Hosting Hostinger** | Tu veux un Node.js managé | ~12€/mois | Limites de RAM selon plan |
-
-Si tu connais bien le déploiement Node : VPS. Sinon : Cloud Hosting avec Node.js. Pour un hackathon, le Cloud Hosting est plus sûr — moins de surprises de config réseau.
-
-**Note** : ne pas déployer sur Vercel pour la démo finale. C'est tentant (Vercel = Next.js facile), mais ça contredit ton pitch « hébergé chez Hostinger ». Le jury vérifiera l'URL et le DNS. Sois cohérent.
+Le déploiement Vercel a été écarté volontairement : il contredirait le positionnement produit (« hébergé chez Hostinger »).
 
 ---
 
-## 2. Le domaine
+## 2. Domaine
 
-Idéalement un domaine custom court. Trois options par ordre de préférence :
+Domaine actuel : **`getdrop.cloud`** (acheté chez Hostinger, ~15 €/an).
 
-1. **Domaine acheté** : `drop.fr`, `drop.app`, `getdrop.fr` (~15€/an chez Hostinger). C'est le plus pro.
-2. **Sous-domaine Hostinger gratuit** : `drop.hostingersite.com` ou équivalent. Acceptable.
-3. **`ngrok` ou tunnel** : à éviter pour la démo finale. Ok pour les tests internes.
+Vérifications à effectuer J-7 minimum :
 
-Vérifier dès J-7 :
-- DNS configuré (A record vers IP, CNAME pour www)
-- SSL/HTTPS automatique (Let's Encrypt via Hostinger)
-- Test depuis un téléphone en 4G : le domaine résout
+- DNS configuré (A record vers IP du VPS, CNAME pour `www`)
+- HTTPS automatique via Let's Encrypt (géré par Traefik)
+- Test de résolution depuis un téléphone en 4G
 
 ---
 
-## 3. Comptes démo pré-créés pour le jury
+## 3. Accès direct sans signin
 
-Le jury ne doit pas créer un compte. Pourquoi :
-- L'inscription par magic link prend 1-2 min (envoi email, attente, clic). Sur 5 membres de jury, tu perds 10 min de leur attention.
-- Les emails du jury peuvent atterrir en spam.
-- Le jury teste rarement à 100 %. Beaucoup vont juste regarder. Si tu mets une barrière auth, ils ne testent rien.
+Le parcours par magic link impose un aller-retour email peu compatible avec une évaluation rapide. Pour les démos publiques, prévoir un mécanisme d'**accès direct sans login** via tokens hardcodés.
 
-**Donc** : crée 3 comptes démo pré-prêts, chacun avec ses propres seeds Drops, et donne au jury **un accès direct sans login**.
+### Principe
 
-### Le système d'accès direct
-
-Au lieu d'auth, génère un token de session démo invité qui contourne le magic link :
+Une route `/jury/[token]` mappe chaque token vers un compte démo pré-créé. Elle ouvre une session sans passer par le magic link.
 
 ```ts
 // src/app/jury/[token]/page.tsx
@@ -55,10 +40,9 @@ import { auth } from '@/lib/auth'
 
 export default async function JuryEntryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const demoEmail = DEMO_TOKENS[token]    // mapping token → email démo
+  const demoEmail = DEMO_TOKENS[token]
   if (!demoEmail) redirect('/')
 
-  // Crée une session sans passer par le magic link
   const session = await auth.api.createSession({
     body: { userId: getUserIdByEmail(demoEmail) },
   })
@@ -79,22 +63,25 @@ const DEMO_TOKENS: Record<string, string> = {
 }
 ```
 
-URLs à donner au jury :
+URLs à communiquer :
+
 - `https://getdrop.cloud/jury/jury-plombier-h4k7`
 - `https://getdrop.cloud/jury/jury-coach-m9p2`
 - `https://getdrop.cloud/jury/jury-restaurant-x3q8`
 
-Chaque lien connecte directement à un compte démo prêt, avec ses 3-5 drops déjà générés et leurs statistiques peuplées.
+Chaque URL ouvre un dashboard pré-peuplé (3-5 drops démo avec stats).
 
-**Important** : ne diffuse PAS ces URLs publiquement avant la soumission. Elles donnent un accès admin aux comptes démo. Désactive-les après le hackathon.
+**Sécurité** : ces URLs donnent un accès admin aux comptes démo. Ne pas les diffuser publiquement avant la soumission. Les désactiver après la fin de l'évaluation.
+
+> **Statut implémentation** : à faire. Hors scope de la première passe de déploiement, à traiter avant la soumission.
 
 ---
 
-## 4. Rate limiting pour éviter l'explosion des coûts
+## 4. Rate limiting (protection coûts)
 
-Si un membre du jury (ou un curieux) génère 100 Drops avec un compte démo, tu prends $2 d'API Claude + $0.30 d'images. Pas la fin du monde, mais à 1000 utilisateurs c'est $20. À surveiller.
+Un compte démo accessible publiquement peut générer un volume important de Drops si une personne enchaîne les requêtes. Coût d'ordre de grandeur : ~$0.02 par Drop (Claude + Flux Schnell). 100 Drops = $2 ; 1000 Drops = $20.
 
-Implémente un rate limit simple par compte :
+Limite simple par compte :
 
 ```ts
 // src/lib/rate-limit.ts
@@ -106,18 +93,24 @@ export async function checkRateLimit(userId: string, limit = 10, windowHours = 2
     where: { userId, createdAt: { gte: since } },
   })
   if (count >= limit) {
-    throw new Error(`Limite atteinte : ${limit} Drops par ${windowHours}h. Réessaie demain.`)
+    throw new Error(`Limite atteinte : ${limit} Drops par ${windowHours}h. Réessayer demain.`)
   }
 }
 ```
 
-À appeler en haut de `/api/generate` avant tout appel coûteux. Pour les comptes démo, mets une limite raisonnable (genre 20 Drops sur 48h). Pour un compte normal, 10/jour suffit.
+À appeler en haut de `/api/generate` avant les appels API coûteux.
+
+> **Note** : un rate-limit per-IP via Upstash est déjà en place sur `/api/generate` (`drop:generate`, 10/h). La limite per-account ci-dessus est complémentaire pour les comptes démo.
+
+Paramètres recommandés :
+- **Comptes démo** : 20 Drops / 48h.
+- **Comptes normaux** : 10 Drops / 24h.
 
 ---
 
-## 5. Page d'accueil dédiée au jury
+## 5. Page d'accueil dédiée (`/jury`)
 
-Crée une URL `/jury` (publique, sans auth) qui explique tout en une page :
+URL publique sans auth qui regroupe les trois manières d'accéder à la démo. Sert d'entrée unique communiquée dans la description de la vidéo.
 
 ```tsx
 // src/app/jury/page.tsx
@@ -129,7 +122,7 @@ export default function JuryHomePage() {
           Hackathon · Académie IApreneurs × Hostinger
         </p>
         <h1 className="font-display text-6xl leading-[0.95] mb-8">
-          Drop, pour le jury.
+          Drop, accès démo.
         </h1>
         <p className="font-editorial italic text-2xl leading-relaxed opacity-90 mb-12">
           Le pop-up store du contenu web. Une phrase devient un mini-site éphémère, hébergé chez Hostinger, qui s'auto-détruit en sept jours.
@@ -164,8 +157,8 @@ export default function JuryHomePage() {
 
           <DemoLink
             number="03"
-            label="Générer un Drop par vous-même"
-            description="Connectez-vous à n'importe quel compte démo ci-dessus, cliquez sur Nouveau Drop, tapez une phrase. Comptez 60 à 90 secondes."
+            label="Générer un Drop"
+            description="Se connecter à n'importe quel compte démo ci-dessus, cliquer sur Nouveau Drop, taper une phrase. Compter 60 à 90 secondes."
             links={[]}
           />
         </ol>
@@ -177,7 +170,7 @@ export default function JuryHomePage() {
         </h2>
         <ul className="space-y-3 font-mono text-sm">
           <li>→ <a href="https://github.com/…" className="underline underline-offset-4">Code source GitHub</a></li>
-          <li>→ <a href="/Drop_Pitch_Hackathon.pdf" className="underline underline-offset-4">Deck PDF (9 pages)</a></li>
+          <li>→ <a href="/Drop_Pitch_Jury.pdf" className="underline underline-offset-4">Deck PDF</a></li>
           <li>→ <a href="mailto:contact@getdrop.cloud" className="underline underline-offset-4">Contact équipe</a></li>
         </ul>
       </div>
@@ -210,69 +203,23 @@ function DemoLink({ number, label, description, links }: {
 }
 ```
 
-C'est cette page que tu mets en description de ta vidéo. URL courte : `getdrop.cloud/jury`.
+URL courte communiquée : `getdrop.cloud/jury`.
 
 ---
 
 ## 6. README du repo GitHub
 
-Si le hackathon demande le code, le repo doit être lisible en 3 minutes. Structure minimale :
+Le README doit être lisible en 3 minutes et prouver que le projet est techniquement sérieux. Cf. `README.md` à la racine — structure minimale : démo live, vidéo, PDF, stack, instructions de run, lien vers `Docs/`.
 
-```markdown
-# Drop
-
-Le pop-up store du contenu web. Une phrase devient un mini-site éphémère.
-
-→ **Démo live** : https://getdrop.cloud/jury
-→ **Vidéo de pitch** : https://youtu.be/…
-→ **PDF du deck** : [Drop_Pitch_Hackathon.pdf](./Drop_Pitch_Hackathon.pdf)
-
-## Stack
-
-Next.js 15 · TypeScript · Tailwind v4 · Prisma + PostgreSQL · Better Auth · Anthropic Claude · fal.ai (Flux) · Resend · Hébergé sur Hostinger.
-
-## Run locally
-
-\`\`\`bash
-pnpm install
-cp .env.example .env.local    # remplir les clés API
-pnpm db:push
-pnpm db:seed
-pnpm dev
-\`\`\`
-
-## Architecture
-
-Voir [docs/](./docs/) pour la documentation complète :
-
-- `01-ai-contract.md` — le schema Zod et les prompts Claude
-- `02-database.md` — modèle Prisma
-- `03-generation-pipeline.md` — flow de génération avec streaming
-- `04-templates.md` — les 5 templates React
-- `05-auth.md` — magic link via Better Auth
-- `06-dashboard.md` — espace patron
-
-## Équipe
-
-[Liste des membres]
-
-## Hackathon
-
-Académie IApreneurs × Hostinger — mai 2026 — Thème 02 (Création de contenu).
-```
-
-Le README ne doit pas vendre Drop (la vidéo le fait). Il doit prouver que **le projet est techniquement sérieux**. C'est l'inverse du pitch émotionnel : factuel, structuré, court.
+Voir aussi `CLAUDE.md` qui résume les conventions et l'architecture en une page.
 
 ---
 
 ## 7. Monitoring de base
 
-Le jury va tester sur 24-48h. Tu dois savoir si ça tombe en panne. Trois choses minimum :
+Pendant la phase d'évaluation (24-48 h typiques), il faut un signal de panne. Trois éléments minimum :
 
-**1. Uptime check externe.** Configure un check toutes les 5 min sur `getdrop.cloud/api/health` :
-- Service gratuit : UptimeRobot, Better Stack, Hyperping
-- Si down : notification SMS / Slack / Telegram
-- Le endpoint `/api/health` retourne juste `{ ok: true, db: 'ok', ai: 'ok' }`
+**1. Uptime check externe.** Check toutes les 5 min sur `getdrop.cloud/api/health` via UptimeRobot, Better Stack ou Hyperping. Notification SMS / Slack / Telegram en cas de down.
 
 ```ts
 // src/app/api/health/route.ts
@@ -286,6 +233,8 @@ export async function GET() {
 }
 ```
 
+Status uptime public : <https://stats.uptimerobot.com/Rd3dJ0eSNG>.
+
 **2. Logs de génération.** Chaque appel à `/api/generate` log :
 - userId (anonymisé)
 - input length
@@ -293,27 +242,27 @@ export async function GET() {
 - succès / erreur
 - coût estimé
 
-Dans une table `generation_log` ou simplement console.log si tu n'as pas le temps. Tu sauras au moins si quelque chose part en vrille.
+Stocker dans une table dédiée ou simplement `console.log`. Permet de détecter une dérive en lecture rapide.
 
-**3. Alerte coûts.** Configure une alerte sur ta console Anthropic et fal.ai à $5 et $20. Si tu reçois la première à 3h du matin pendant l'évaluation, tu sais que quelque chose tourne mal (un bot, un test automatisé qui boucle).
+**3. Alertes coût.** Configurer une alerte sur la console Anthropic et fal.ai à $5 et $20. Une alerte à 3 h du matin pendant l'évaluation signale en général un bot ou un test automatisé qui boucle.
 
 ---
 
-## 8. Plan B si quelque chose plante
+## 8. Plans B
 
-Préparer trois scénarios.
+Trois scénarios anticipés.
 
-### Scénario 1 — Génération en panne (Claude ou fal.ai down)
+### Scénario 1 — Génération en panne (Claude ou fal.ai indisponible)
 
-**Symptôme** : l'utilisateur tape une phrase, attend, et obtient une erreur.
+**Symptôme** : l'utilisateur tape une phrase, attend, obtient une erreur.
 
-**Plan B** : afficher un message clair *« Génération temporairement indisponible. Voici trois Drops qu'on a déjà créés. »* avec des liens vers les seeds. Le jury peut quand même évaluer le rendu.
+**Mitigation** : afficher un message clair *« Génération temporairement indisponible. Voici trois Drops déjà créés. »* avec liens vers les seeds. L'évaluation visuelle reste possible.
 
 ```tsx
 // En cas d'erreur dans generate-client.tsx
 {error && (
   <div className="mt-6">
-    <p className="text-rouille">Génération indisponible. Voilà ce que ça donne en exemple :</p>
+    <p className="text-rouille">Génération indisponible. Exemple de rendu :</p>
     <Link href="/d/lent-papillon-mauve">→ Voir un Drop déjà créé</Link>
   </div>
 )}
@@ -323,55 +272,53 @@ Préparer trois scénarios.
 
 **Symptôme** : l'app entière ne charge pas.
 
-**Plan B** : avoir une page statique de secours à `/backup.html` (HTML pur, pas Next.js) qui affiche les 3 drops seeds en screenshots + un lien vers la vidéo. Si le serveur web tient mais que la DB est down, tu redirected vers cette page.
+**Mitigation** : page statique de secours `/backup.html` (HTML pur, hors Next.js) avec les 3 drops seeds en screenshots + lien vers la vidéo. Si Next sert encore mais que la DB est down, redirection vers cette page.
 
-### Scénario 3 — Hostinger lui-même down
+### Scénario 3 — Hostinger indisponible
 
 **Symptôme** : `getdrop.cloud` ne résout pas.
 
-**Plan B** : un domaine de secours sur Vercel ou Netlify (gratuit) qui héberge la vidéo + un message *« On a un incident, voici la vidéo et le PDF. »*. URL : par exemple `drop-backup.vercel.app`. Activé seulement si nécessaire.
+**Mitigation** : un domaine de secours sur Vercel ou Netlify (gratuit) qui héberge la vidéo + un message *« Incident en cours, voici la vidéo et le PDF. »*. Activé uniquement en cas d'incident réel.
 
-Précise dans la description vidéo : *« En cas d'incident sur le site principal, mirror disponible sur [URL backup]. »*
+Description vidéo à compléter : *« En cas d'incident sur le site principal, mirror disponible sur [URL backup]. »*
 
 ---
 
-## 9. Stress test J-2
+## 9. Tests de charge J-2
 
-Deux jours avant la soumission, fais ces tests :
+Deux jours avant la soumission, série de tests à réaliser :
 
-- [ ] Ouvre `getdrop.cloud/jury` depuis 3 appareils différents (Chrome Mac, Safari iPhone, Firefox Linux).
-- [ ] Clique sur chaque CTA, génère un Drop frais sur chaque compte démo.
-- [ ] Mesure le temps de génération (doit être < 90 s).
-- [ ] Ouvre 5 onglets en même temps qui génèrent simultanément. Vérifie que ça tient (concurrent requests).
-- [ ] Demande à 1 personne extérieure (ami, conjoint) de tester sans aucune explication. Si ça lui prend plus de 2 min à comprendre, ta page `/jury` est mal foutue.
+- [ ] Ouvrir `getdrop.cloud/jury` depuis 3 appareils différents (Chrome Mac, Safari iPhone, Firefox Linux).
+- [ ] Cliquer sur chaque CTA, générer un Drop frais sur chaque compte démo.
+- [ ] Mesurer le temps de génération (cible < 90 s).
+- [ ] Ouvrir 5 onglets en parallèle qui génèrent simultanément. Vérifier la tenue.
+- [ ] Faire tester 1 personne extérieure sans aucune explication. Si la prise en main dépasse 2 min, la page `/jury` est à revoir.
 - [ ] Test depuis une connexion 4G mobile, pas wifi rapide.
 - [ ] Vérifier que les liens dans la description vidéo fonctionnent depuis YouTube en mobile.
 
 ---
 
-## 10. Récap des livrables au moment de la soumission
-
-Liste à fournir au hackathon :
+## 10. Livrables au moment de la soumission
 
 | Livrable | Format | Où |
 |---|---|---|
-| Vidéo de pitch | MP4 1080p ≤ 200 Mo | Plateforme hackathon + YouTube en non-listé |
+| Vidéo de pitch | MP4 1080p ≤ 200 Mo | Plateforme hackathon + YouTube non-listé |
 | URL de la démo | `getdrop.cloud/jury` | Lien direct dans le formulaire |
 | Code source | Repo GitHub public | URL dans la soumission |
-| Deck PDF | 9 pages, sous-fichier | Joint à la soumission |
+| Deck PDF | Sous-fichier joint | Joint à la soumission |
 | Description | Texte court | Champ "description" du formulaire |
 | Mirror de secours | URL alternative | Mentionné dans la description vidéo |
 
-**Description courte type pour le formulaire (max 500 caractères) :**
+**Description courte type pour le formulaire (≤ 500 caractères) :**
 
 > *Drop transforme une phrase en mini-site web éphémère, hébergé chez Hostinger, qui s'auto-détruit en 7 jours. Le pop-up store du contenu web pour les TPE et PME. Aucun savoir-faire technique requis : input léger en entrée, expérience web complète en sortie, avec tracking et capture de lead intégrés. Démo en accès direct sans inscription sur getdrop.cloud/jury.*
 
 ---
 
-## 11. Erreurs à ne pas faire
+## 11. À ne pas oublier
 
-- **Ne pas demander au jury de s'inscrire.** Aucun jury ne s'inscrit. Tous abandonnent à la 1ère friction.
-- **Ne pas livrer un repo GitHub privé.** Si le jury ne peut pas voir le code, il considère qu'il n'y en a pas.
-- **Ne pas attendre J-1 pour tester.** Les bugs se révèlent sous charge légère, pas en dev local.
-- **Ne pas oublier de désactiver les Stripe / API keys live** dans le repo public. `git secrets` ou un audit manuel avant de pousser.
-- **Ne pas laisser les comptes démo accessibles après le hackathon.** Une fois noté, désactive `/jury/*`. Sinon n'importe qui en internet peut se connecter à tes données.
+- **Ne pas demander d'inscription pour la démo.** Une étape de magic link décourage l'essai.
+- **Garder le repo GitHub public** pour permettre la lecture du code.
+- **Tester sous charge légère avant la deadline**, pas la veille.
+- **Désactiver les clés API live exposées dans le repo.** Audit manuel ou `git secrets` avant chaque push public.
+- **Désactiver `/jury/*` après la fin de l'évaluation.** Sinon n'importe qui sur internet a un accès admin aux comptes démo.

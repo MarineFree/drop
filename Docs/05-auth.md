@@ -32,8 +32,10 @@ pnpm add -D @types/node
 BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 BETTER_AUTH_URL=https://getdrop.cloud         # ou http://localhost:3000 en dev
 RESEND_API_KEY=re_...
-EMAIL_FROM="Drop <hello@getdrop.cloud>"
+RESEND_FROM_EMAIL=onboarding@resend.dev       # sandbox ; en prod, auth@<domaine-vérifié>
 ```
+
+> **Note** : la variable d'env s'appelle `RESEND_FROM_EMAIL` (et pas `EMAIL_FROM`), pour rester cohérente avec le préfixe du fournisseur. Cf. `.env.example` et `DEPLOY.md`.
 
 ---
 
@@ -181,7 +183,7 @@ interface Args {
 
 export async function sendMagicLinkEmail({ email, url }: Args) {
   const { error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM!,
+    from: process.env.RESEND_FROM_EMAIL!,
     to: email,
     subject: 'Ton lien de connexion à Drop',
     html: renderEmail({ url }),
@@ -253,7 +255,9 @@ export const { signIn, signOut, useSession } = authClient
 
 ---
 
-## 8. Page de connexion (`src/app/(auth)/signin/page.tsx`)
+## 8. Page de connexion (`src/app/signin/page.tsx`)
+
+> Le snippet ci-dessous utilise `motion/react` à titre illustratif. L'implémentation réelle est CSS-only (`animate-fade-in` / `animate-slide-up`, cf. `CLAUDE.md` « pas de framer-motion »). La page vit directement sous `/signin/`, pas sous un route group `(auth)/`.
 
 ```tsx
 'use client'
@@ -358,10 +362,10 @@ export async function requireUser() {
 }
 ```
 
-À utiliser dans toutes les Server Components et Server Actions du `(creator)` :
+À utiliser dans tous les Server Components et Server Actions des pages authentifiées (`/dashboard`, `/dashboard/d/[id]`, `/dashboard/settings`, `/new`, `/onboarding`) :
 
 ```tsx
-// src/app/(creator)/dashboard/page.tsx
+// src/app/dashboard/page.tsx
 import { requireUser } from '@/lib/auth-server'
 
 export default async function DashboardPage() {
@@ -461,5 +465,5 @@ export function SignOutButton() {
 
 - **Resend en free tier = 100 emails/jour**. Ça suffit largement pour le hackathon. Au-delà, soit on paye, soit on switch sur Postmark.
 - **Si le domaine `getdrop.cloud` n'est pas vérifié DKIM/SPF chez Resend**, les emails atterrissent en spam. Vérifier le DNS J-3 minimum avant la démo. Pas J-1 : DKIM peut prendre 24h.
-- **Magic link en démo live** : si tu présentes en direct la première connexion, prévoir une connexion Wi-Fi fiable + un compte email accessible sur scène (pas Gmail qui peut demander une vérification 2FA imprévue). Idéalement, montre la connexion depuis un compte déjà créé en seed.
+- **Magic link en démo live** : pour une présentation en direct de la première connexion, prévoir une connexion Wi-Fi fiable + un compte email accessible (éviter Gmail qui peut demander une vérification 2FA imprévue). Idéalement, montrer la connexion depuis un compte déjà créé en seed.
 - **Pas de récupération sans email**. Si le patron perd accès à sa boîte mail, il perd accès à Drop. C'est acceptable en hackathon, pas en prod. Pour la prod : ajouter un second facteur ou une procédure manuelle.

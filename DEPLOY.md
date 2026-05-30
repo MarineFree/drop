@@ -1,6 +1,6 @@
 ﻿# Déploiement Drop sur VPS Hostinger via Dokploy
 
-Cette doc est la **checklist humaine** pour passer Drop de zéro à prod sur un VPS Hostinger géré par Dokploy. Aucune commande n'est lancée par l'IA — tout passe par la GUI Dokploy + ton terminal SSH.
+Cette doc est la **checklist humaine** pour passer Drop de zéro à prod sur un VPS Hostinger géré par Dokploy. Aucune commande n'est lancée automatiquement — tout passe par la GUI Dokploy + un terminal SSH.
 
 > Toutes les manipulations DB (push, seed) se font après le premier déploiement, depuis le terminal du conteneur app dans Dokploy.
 
@@ -16,7 +16,7 @@ Cette doc est la **checklist humaine** pour passer Drop de zéro à prod sur un 
   - Anthropic (`sk-ant-…`)
   - fal.ai (`FAL_KEY`)
   - OpenAI (Whisper — `sk-…`)
-  - Resend (`re_…`) + domaine email vérifié si tu sors du sandbox
+  - Resend (`re_…`) + domaine email vérifié si l'on sort du sandbox
   - Upstash Redis (URL REST + token)
 
 ---
@@ -46,7 +46,7 @@ Pas de wildcard, pas de CNAME nécessaire. Vérifier la propagation après ~15 m
    - Password : choisir un mot de passe fort (à garder, on en a besoin pour DATABASE_URL).
 3. **Deploy** → attendre que le service tourne (icône verte).
 4. Récupérer le **hostname interne** du conteneur Postgres :
-   - Onglet **Advanced** ou **Network** du service → champ `Host` (typiquement `drop-db.drop-{projectref}` ou similaire selon ta version Dokploy).
+   - Onglet **Advanced** ou **Network** du service → champ `Host` (typiquement `drop-db.drop-{projectref}` ou similaire selon la version de Dokploy).
    - Si pas trouvé en GUI : SSH sur le VPS et lancer `docker network inspect <network-dokploy> | grep drop-db` pour récupérer le nom DNS interne.
 
 Construire l'URL DATABASE_URL :
@@ -231,7 +231,7 @@ Le service `/api/upload-image` écrit dans `UPLOAD_DIR` via l'abstraction `src/l
    ```
    Le dossier doit exister, owner `nextjs:nodejs` (uid 1001).
 
-2. Upload de test : signe-toi sur la prod, va sur `/new`, attache une photo (JPEG < 4 Mo), génère un drop, ouvre le drop public et vérifie que l'image s'affiche.
+2. Upload de test : se connecter sur la prod, aller sur `/new`, attacher une photo (JPEG < 4 Mo), générer un drop, ouvrir le drop public et vérifier que l'image s'affiche.
 
 3. Re-deploy (Dokploy → bouton **Redeploy**) → ré-ouvrir le même drop. L'image doit toujours s'afficher → preuve que le volume persiste.
 
@@ -256,7 +256,7 @@ Le service `/api/upload-image` écrit dans `UPLOAD_DIR` via l'abstraction `src/l
 
 ## 9. Configuration VPS (section optionnelle — uniquement avec accès SSH root)
 
-Cette section regroupe les commandes manuelles côté VPS si tu me donnes l'accès SSH.
+Cette section regroupe les commandes manuelles côté VPS lorsque l'accès SSH est disponible.
 
 ### Firewall
 
@@ -293,7 +293,7 @@ Sans swap, un build Next 15 sous Node 20 peut OOM-killer sur 4 GB RAM (Webpack h
 
 ### Lancer `db push` + `seed` contre la prod depuis SSH (alternative au terminal Dokploy)
 
-Si le terminal GUI Dokploy n'est pas pratique :
+Si le terminal GUI Dokploy ne convient pas :
 
 ```bash
 # Trouver le container app
@@ -337,7 +337,7 @@ pnpm dev                         # localhost:3000
 # Sanity avant push
 pnpm typecheck && pnpm lint
 
-# Build local (sait que le standalone échoue sur Windows — c'est OK)
+# Build local (le standalone échoue sur Windows — comportement connu, sans impact sur la prod Linux)
 pnpm build
 ```
 

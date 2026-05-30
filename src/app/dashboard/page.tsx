@@ -17,8 +17,6 @@ export const dynamic = 'force-dynamic'
 export default async function DashboardPage() {
   const sessionUser = await requireUser()
 
-  // Source de vérité = Prisma, pas la session (la session est cachée 5 min via
-  // cookieCache, peut-être stale juste après l'onboarding).
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: sessionUser.id },
     select: { id: true, business: true, trade: true },
@@ -30,21 +28,32 @@ export default async function DashboardPage() {
   const activeCount = drops.filter(d => d.isActive && d.expiresAt > now).length
 
   return (
-    <div className="min-h-screen bg-cream-grain text-ink">
+    <div className="lp-root min-h-screen">
       <DashboardHeader business={user.business} />
 
       <main className="mx-auto max-w-6xl px-6 py-12">
         {/* Page header */}
-        <div className="mb-16 flex items-end justify-between">
+        <div className="mb-16 flex flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.25em] text-violet">
+            <p
+              className="mb-3 font-[var(--font-mono)] text-[11px] uppercase tracking-[0.25em]"
+              style={{ color: 'var(--lp-accent)' }}
+            >
               {user.business}
             </p>
-            <h1 className="font-display text-5xl leading-[0.95] md:text-6xl">Tes Drops.</h1>
+            <h1 className="font-[var(--font-lp-display)] text-5xl font-bold leading-[0.95] tracking-[-0.03em] md:text-6xl">
+              Tes Drops.
+            </h1>
           </div>
           <Link
             href="/new"
-            className="bg-ink px-6 py-3 font-mono text-xs uppercase tracking-[0.15em] text-cream"
+            className="inline-flex items-center gap-2 rounded-xl px-6 py-3 font-[var(--font-lp-display)] text-sm font-semibold transition"
+            style={{
+              background: 'var(--lp-accent)',
+              color: 'oklch(20% 0.04 230)',
+              boxShadow:
+                '0 0 0 1px var(--lp-accent), 0 8px 30px -8px var(--lp-glow)',
+            }}
           >
             Nouveau Drop
           </Link>
@@ -60,13 +69,23 @@ export default async function DashboardPage() {
         />
 
         <section className="mt-20">
-          <h2 className="mb-6 font-mono text-[11px] uppercase tracking-[0.25em] opacity-60">
+          <h2
+            className="mb-6 font-[var(--font-mono)] text-[11px] uppercase tracking-[0.25em]"
+            style={{ color: 'var(--lp-faint)' }}
+          >
             Tous les Drops
           </h2>
           {drops.length === 0 ? (
             <EmptyState />
           ) : (
-            <ul className="divide-y divide-ink/10 border-y border-ink/10">
+            <ul
+              className="divide-y border-y"
+              style={{
+                borderColor: 'var(--lp-line)',
+                // Tailwind divide-y avec custom color : on hint via inline
+                // sur les <li> du DropCard.
+              }}
+            >
               {drops.map(d => (
                 <DropCard key={d.id} drop={d} />
               ))}
@@ -81,13 +100,27 @@ export default async function DashboardPage() {
 function EmptyState() {
   return (
     <div className="py-24 text-center">
-      <p className="font-display text-3xl italic opacity-80">Aucun Drop encore.</p>
-      <p className="mt-4 font-mono text-xs uppercase tracking-[0.15em] opacity-50">
+      <p
+        className="font-[var(--font-lp-display)] text-3xl italic"
+        style={{ color: 'var(--lp-muted)' }}
+      >
+        Aucun Drop encore.
+      </p>
+      <p
+        className="mt-4 font-[var(--font-mono)] text-xs uppercase tracking-[0.15em]"
+        style={{ color: 'var(--lp-faint)' }}
+      >
         Commence par tapoter une phrase.
       </p>
       <Link
         href="/new"
-        className="mt-8 inline-block bg-ink px-6 py-3 font-mono text-xs uppercase tracking-[0.15em] text-cream"
+        className="mt-8 inline-flex items-center gap-2 rounded-xl px-6 py-3 font-[var(--font-lp-display)] text-sm font-semibold transition"
+        style={{
+          background: 'var(--lp-accent)',
+          color: 'oklch(20% 0.04 230)',
+          boxShadow:
+            '0 0 0 1px var(--lp-accent), 0 8px 30px -8px var(--lp-glow)',
+        }}
       >
         Nouveau Drop
       </Link>

@@ -177,13 +177,14 @@ export function VoiceRecorder({ onTranscription, disabled = false }: VoiceRecord
       <div className="flex items-center gap-4">
         <span
           aria-hidden="true"
-          className="inline-block h-3 w-3 animate-pulse rounded-full bg-rouille"
+          className="inline-block h-3 w-3 animate-pulse rounded-full bg-[oklch(72%_0.15_30)]"
         />
         <span className="font-mono text-sm tabular-nums">{formatMmSs(elapsedSec)}</span>
         <button
           type="button"
           onClick={stopRecording}
-          className="font-mono text-[11px] uppercase tracking-[0.2em] text-rouille opacity-90 transition hover:opacity-100"
+          className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.2em] opacity-90 transition hover:opacity-100"
+          style={{ color: 'oklch(72% 0.15 30)' }}
         >
           Arrêter
         </button>
@@ -213,7 +214,7 @@ export function VoiceRecorder({ onTranscription, disabled = false }: VoiceRecord
   if (phase === 'permission_denied') {
     return (
       <div className="space-y-2">
-        <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-rouille">
+        <p className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.15em]" style={{ color: 'oklch(72% 0.15 30)' }}>
           Accès micro refusé
         </p>
         <p className="max-w-md font-mono text-[11px] leading-relaxed opacity-70">
@@ -234,7 +235,7 @@ export function VoiceRecorder({ onTranscription, disabled = false }: VoiceRecord
   if (phase === 'error') {
     return (
       <div className="space-y-2">
-        <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-rouille">
+        <p className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.15em]" style={{ color: 'oklch(72% 0.15 30)' }}>
           {error ?? 'Erreur'}
         </p>
         <button

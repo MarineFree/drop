@@ -135,7 +135,7 @@ Claude doit **toujours** renvoyer un objet conforme à `DropContentSchema` (`src
 
 ## Conventions importantes
 
-- **Toujours générer en streaming côté serveur** quand l'utilisateur regarde — pas de loading spinner pendant 60s, sinon le wahou démo meurt.
+- **Toujours générer en streaming côté serveur** quand l'utilisateur regarde — pas de loading spinner pendant 60s, sinon la perception de réactivité s'effondre.
 - **Toujours valider avec Zod** la sortie de Claude avant insertion DB. Si parse échoue, retry une fois avec un message d'erreur explicite injecté dans le prompt.
 - **Toujours générer l'image en parallèle du texte**, pas après. Promise.all obligatoire.
 - **Les templates ne doivent jamais fetch eux-mêmes** — ils reçoivent toute la data en props depuis la page serveur.
@@ -176,7 +176,7 @@ UPLOAD_DIR=/data/uploads               # Volume Docker persistant Dokploy (uploa
 
 - **Toujours** lancer `pnpm typecheck` et `pnpm lint` avant un commit.
 - **Toujours** tester la génération avec un vrai input réel (pas "lorem ipsum") quand on touche aux prompts. Les prompts cassent silencieusement.
-- **Toujours** garder les 3 drops de seed à jour — ce sont eux qu'on présente au jury.
+- **Toujours** garder les 3 drops de seed à jour — ce sont les exemples de référence du repo.
 - **Toujours** consommer `var(--bg)` / `var(--text)` / `var(--accent)` / `var(--accent-fg)` / `var(--soft)` dans les templates publics, JAMAIS les classes Tailwind `bg-cream` / `text-violet` / etc. — Shell injecte les vars selon `User.brandColor`. Dashboard reste neutre cream/ink (pas brandé).
 - **Jamais** push des secrets. `.env.local` est dans `.gitignore`. Grep défensif avant `git add`.
 - **Jamais** changer le schema `DropContent` sans mettre à jour les 5 templates en même temps. Le template attend exactement ces clés.
@@ -185,12 +185,12 @@ UPLOAD_DIR=/data/uploads               # Volume Docker persistant Dokploy (uploa
 
 ---
 
-## Cible démo
+## Seeds de référence
 
-Trois drops seed dans `db:seed` qui doivent claquer au jury :
+Trois drops seed dans `db:seed`, couvrant les trois templates les plus différents en composition (guide pratique, quiz, annonce) :
 
-1. **Plombier Lyon** — "Pourquoi 80% des chaudières lâchent en novembre" (template `how-to`, checklist + CTA devis)
-2. **Coach pro Bordeaux** — "Tu changes de boîte ?" (template `quiz`, lead capture)
-3. **Restaurant Lille** — "Le menu de cette semaine en 3 plats" (template `announcement`, CTA réservation)
+1. **Plombier Lyon** — « Pourquoi 80% des chaudières lâchent en novembre » (template `how-to`, checklist + CTA devis)
+2. **Coach pro Bordeaux** — « Tu changes de boîte ? » (template `quiz`, lead capture)
+3. **Restaurant Lille** — « Le menu de cette semaine en 3 plats » (template `announcement`, CTA réservation)
 
-Si ces trois rendent bien, le projet est démontrable. Le reste est bonus.
+Ces trois exemples servent de base de référence pour vérifier les templates et calibrer les prompts.

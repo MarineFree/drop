@@ -4,7 +4,7 @@ Un patron de TPE/PME tape une phrase. En 90 secondes, Drop génère un mini-site
 
 → **Démo** : <https://getdrop.cloud/signin> (auth par magic link, self-service)
 → **Status uptime** : <https://stats.uptimerobot.com/Rd3dJ0eSNG>
-→ **Deck de pitch** : [`Drop_Pitch_Hackathon.pdf`](./Drop_Pitch_Hackathon.pdf)
+→ **Deck de pitch** : [`Drop_Pitch_Jury.pdf`](./Drop_Pitch_Jury.pdf)
 
 ## Stack
 

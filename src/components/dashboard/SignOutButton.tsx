@@ -24,7 +24,8 @@ export function SignOutButton() {
       type="button"
       onClick={handleSignOut}
       disabled={signingOut}
-      className="font-mono text-[11px] uppercase tracking-[0.15em] opacity-70 transition hover:opacity-100 disabled:opacity-30"
+      className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.15em] transition hover:opacity-100 disabled:opacity-30"
+      style={{ color: 'var(--lp-muted)' }}
     >
       {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
     </button>

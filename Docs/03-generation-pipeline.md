@@ -1,6 +1,6 @@
 ﻿# 03 — Pipeline de Génération
 
-Le flow complet : input patron → mini-site live, avec streaming pour le wahou en démo.
+Le flow complet : input patron → mini-site live, avec streaming pour soigner la perception de réactivité côté visiteur.
 
 ---
 
@@ -8,16 +8,17 @@ Le flow complet : input patron → mini-site live, avec streaming pour le wahou 
 
 ```
 ┌─────────────┐    POST /api/generate    ┌──────────────────────┐
-│   Client    │ ───────────────────────▶ │   Edge Route         │
+│   Client    │ ───────────────────────▶ │   Node Route         │
 │  (browser)  │                          │   (streaming SSE)    │
 └─────────────┘                          └──────────────────────┘
        ▲                                          │
-       │                                          ├─► Whisper (si voice)
+       │                                          ├─► Whisper (si voice) — séquentiel
        │                                          │
-       │                                          ├─► Claude tool_use ─┐
-       │   stream events (SSE)                    │                    │
-       │ ◄────────────────────────────────        │                    │  Promise.all
-       │                                          ├─► fal.ai Flux ─────┘
+       │                                          ├─► Claude tool_use
+       │   stream events (SSE)                    │   (retry Zod + fallback Sonnet)
+       │ ◄────────────────────────────────        │
+       │                                          ├─► fal.ai Flux Schnell
+       │                                          │   (séquentiel, dépend de image_prompt)
        │                                          │
        │                                          ├─► Validate (Zod)
        │                                          ├─► Insert DB
@@ -26,6 +27,8 @@ Le flow complet : input patron → mini-site live, avec streaming pour le wahou 
        ▼
    Redirect /d/{slug}
 ```
+
+Note : Whisper et Claude s'exécutent **en séquence** (Whisper d'abord pour produire le texte, puis Claude). fal.ai est aussi séquentiel — il dépend du `image_prompt` retourné par Claude.
 
 **Temps cible total** : 60-90 secondes. Décomposition :
 - Whisper (si voice) : 2-4s
@@ -43,7 +46,7 @@ Le flow complet : input patron → mini-site live, avec streaming pour le wahou 
 - Côté client, on **anime l'apparition section par section** avec framer-motion
 - Pendant l'attente, on affiche une UI engageante : logs textuels qui défilent (« Analyse du sujet… », « Choix du template… », « Génération du visuel… »)
 
-Avantages : simple, fiable, prévisible. Inconvénient : le wahou tient à l'animation, pas à la génération réelle.
+Avantages : simple, fiable, prévisible. Inconvénient : la perception de fluidité tient à l'animation, pas à la génération réelle.
 
 ### Mode B : Vrai streaming via `input_json_delta` (si le temps le permet)
 
@@ -52,9 +55,9 @@ Avantages : simple, fiable, prévisible. Inconvénient : le wahou tient à l'ani
 - Chaque section validée part au client via Server-Sent Events
 - Le mini-site se construit littéralement en direct
 
-Avantages : wahou authentique, technique impressionnante. Inconvénients : parsing partiel = bugs, démos qui plantent.
+Avantages : streaming réel, plus exigeant techniquement. Inconvénients : parsing partiel = bugs potentiels en démo.
 
-**Mon avis pour ton cas** : commence Mode A, push Mode B si tu as 3 jours d'avance avant la date butoir. **Ne fais pas Mode B en premier.**
+**Recommandation** : démarrer en Mode A, basculer Mode B uniquement si la marge temps avant la date butoir le permet. **Ne pas attaquer Mode B en premier.**
 
 ---
 
@@ -72,7 +75,7 @@ export const runtime = 'nodejs'    // pas edge : Prisma a besoin de Node
 export const maxDuration = 120     // 2 minutes max
 
 export async function POST(req: NextRequest) {
-  const user = await auth(req)
+  const user = await getCurrentUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
 
   const formData = await req.formData()
@@ -144,13 +147,13 @@ export async function POST(req: NextRequest) {
 }
 ```
 
-**Note importante sur la parallélisation** : ici, image démarre APRÈS texte parce qu'on a besoin du `image_prompt` retourné par Claude. **C'est volontaire**, pas une erreur. Si tu veux vraiment paralléliser, il faut prédire le prompt image AVANT la génération texte (faisable mais ajoute de la complexité pour gagner 3 secondes).
+**Note importante sur la parallélisation** : ici, image démarre APRÈS texte parce qu'on a besoin du `image_prompt` retourné par Claude. **C'est volontaire**, pas une erreur. Pour vraiment paralléliser, il faudrait prédire le prompt image AVANT la génération texte (faisable mais ajoute de la complexité pour gagner 3 secondes).
 
 > **Note (2026-05-14)** : `generateDropWithRetry` retiré lors de la refonte du fallback IA (cf. `tasks/lessons.md`). API publique unique : `generateDrop(userInput): Promise<{ content, modelUsed }>`. Le fallback Sonnet est désormais interne à `generateDrop` — pas de retry à orchestrer côté route.
 
 ---
 
-## 4. Le client (`src/app/(creator)/new/generate-client.tsx`)
+## 4. Le client (`src/components/creator/GenerateClient.tsx`)
 
 ```tsx
 'use client'
@@ -234,12 +237,17 @@ L'animation `animate-fade-in` (à définir dans Tailwind) fait apparaître chaqu
 ## 5. La page publique du Drop — `src/app/d/[slug]/page.tsx`
 
 ```tsx
+import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
-import { getActiveDropBySlug } from '@/lib/db/drops'
-import { TemplateRenderer } from '@/components/templates/renderer'
-import { trackView } from '@/lib/tracking'
+import { EventKind } from '@prisma/client'
+import { getActiveDropBySlug, trackEvent } from '@/lib/db/drops'
+import { hashVisitor } from '@/lib/privacy/visitor'
+import { ScrollTracker } from '@/components/d/ScrollTracker'
 
-export const revalidate = 60   // ISR : régénère la page max 1×/min
+// `force-dynamic` : la page lit les headers pour le tracking visiteur, donc
+// chaque hit doit toucher le serveur. ISR sera réintroduit plus tard si besoin,
+// en découplant le tracking VIEW (sendBeacon côté client par ex.).
+export const dynamic = 'force-dynamic'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -247,81 +255,48 @@ interface Props {
 
 export default async function DropPage({ params }: Props) {
   const { slug } = await params
-  const drop = await getActiveDropBySlug(slug)
 
+  const drop = await getActiveDropBySlug(slug)
   if (!drop) notFound()    // 404 si expiré ou inexistant
 
-  // Tracking fire-and-forget (ne bloque pas le render)
-  trackView(drop.id).catch(() => {})
-
-  return (
-    <TemplateRenderer
-      content={drop.content as DropContent}
-      imageUrl={drop.imageUrl}
-      slug={drop.slug}
-      expiresAt={drop.expiresAt}
-      business={drop.user.business}
-    />
-  )
-}
-
-export async function generateMetadata({ params }: Props) {
-  const { slug } = await params
-  const drop = await getActiveDropBySlug(slug)
-  if (!drop) return { title: 'Drop expiré' }
-
-  const content = drop.content as DropContent
-  return {
-    title: content.hook.title,
-    description: content.hook.subtitle,
-    openGraph: {
-      title: content.hook.title,
-      description: content.hook.subtitle,
-      images: drop.imageUrl ? [drop.imageUrl] : [],
-    },
+  // Tracking VIEW côté serveur — try/catch pour ne jamais casser le render.
+  const headersList = await headers()
+  const visitorHash = hashVisitor(headersList, drop.id)
+  try {
+    await trackEvent({ dropId: drop.id, kind: EventKind.VIEW, visitorHash })
+  } catch (err) {
+    console.error('[d/[slug]] view tracking failed', err)
   }
+
+  const Template = TEMPLATES[drop.templateType] ?? MinimalRender
+  return (
+    <>
+      <ScrollTracker dropSlug={drop.slug} />
+      <Template drop={drop} />
+    </>
+  )
 }
 ```
 
-**ISR** : `revalidate: 60` veut dire que Next met en cache la page pendant 60s. Donc 1000 visites = 1 hit DB, pas 1000. Crucial si un drop devient viral.
+**Pourquoi `force-dynamic` plutôt qu'ISR** : la page lit `headers()` pour calculer le `visitorHash` (cf. `src/lib/privacy/visitor.ts`). ISR cacherait la première réponse et perdrait les VIEW suivants. Le tracking pourra être basculé côté client (sendBeacon) plus tard si le coût serveur devient un goulot — pour l'instant on privilégie la simplicité.
 
 ---
 
-## 6. Le renderer de templates (`src/components/templates/renderer.tsx`)
+## 6. Le registre de templates
 
-```tsx
-import { HowToTemplate } from './how-to'
-import { ManifestoTemplate } from './manifesto'
-import { CaseStudyTemplate } from './case-study'
-import { QuizTemplate } from './quiz'
-import { AnnouncementTemplate } from './announcement'
-import type { DropContent } from '@/lib/ai/schema'
+Le registre `TEMPLATES` vit directement dans `src/app/d/[slug]/page.tsx` (cf. §5 ci-dessus). Chaque entrée mappe un `TemplateType` Prisma vers un composant. `MinimalRender` sert de filet si un nouveau `TemplateType` est ajouté au schema sans son template dédié.
 
-const REGISTRY = {
-  'how-to': HowToTemplate,
-  'manifesto': ManifestoTemplate,
-  'case-study': CaseStudyTemplate,
-  'quiz': QuizTemplate,
-  'announcement': AnnouncementTemplate,
-} as const
-
-interface Props {
-  content: DropContent
-  imageUrl: string | null
-  slug: string
-  expiresAt: Date
-  business: string | null
-}
-
-export function TemplateRenderer(props: Props) {
-  const Template = REGISTRY[props.content.template_type]
-  if (!Template) return null    // garde-fou : Zod garantit que ça arrive jamais
-
-  return <Template {...props} />
+```ts
+const TEMPLATES: Partial<Record<TemplateType, ComponentType<TemplateProps>>> = {
+  HOW_TO: HowTo,
+  MANIFESTO: Manifesto,
+  QUIZ: Quiz,
+  CASE_STUDY: CaseStudy,
+  ANNOUNCEMENT: Announcement,
 }
 ```
 
-Chaque template reçoit la **même prop signature**. Le `template_type` choisi par Claude détermine l'agencement, mais l'API d'entrée est unifiée. C'est ce qui permet d'ajouter un 6e template plus tard sans toucher au reste.
+Chaque template reçoit une seule prop `{ drop: PublicDrop }`. Le `template_type` choisi par Claude détermine l'agencement, mais l'API d'entrée est unifiée — permet d'ajouter un 6e template sans toucher au reste.
 
 ---
 
@@ -393,7 +368,7 @@ curl -X POST https://getdrop.cloud/api/cron/expire \
 
 À être conscient de :
 
-- **L'appel Claude est le goulot d'étranglement** (30-50s). Si l'API ralentit, toute la démo ralentit. Avoir un fallback Haiku prêt si Opus rame le jour J.
+- **L'appel Claude est le goulot d'étranglement** (30-50s). Si l'API ralentit, l'expérience ralentit. Le pipeline a un fallback modèle interne (cf. CLAUDE.md) en cas de défaillance du modèle primaire.
 - **fal.ai peut retourner des images bizarres** (mains à 6 doigts sur un sujet humain). Le `image_prompt` doit explicitement exclure les visages : déjà fait dans le suffix du fichier 01.
 - **Le streaming SSE peut être bloqué** par certains proxies / CDN. Tester en prod avec exactement le setup du jour de démo, pas en local seulement.
 - **L'auth est shippée comme un détail** dans cette doc. Pour un hackathon, partir sur Lucia ou un magic link basique. Ne pas perdre 2 jours sur l'auth.

@@ -7,23 +7,34 @@ interface DashboardHeaderProps {
 }
 
 // Nav top partagée entre /dashboard et /dashboard/d/[id].
-// Pas de sidebar, pas d'icônes — cohérent avec l'identité éditoriale.
 // Server Component : pas d'état interactif, juste un wrapper.
+// Style aligné Direction B (dark + cyan) pour cohérence avec la landing.
 export function DashboardHeader({ business }: DashboardHeaderProps) {
   return (
-    <nav className="border-b border-ink/10">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link href="/dashboard" className="font-display text-2xl tracking-tight">
+    <nav
+      className="border-b"
+      style={{ borderColor: 'var(--lp-line)' }}
+    >
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-5">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-3 font-[var(--font-lp-display)] text-2xl font-bold tracking-[-0.02em]"
+        >
+          <span aria-hidden className="lp-drop-mark" />
           Drop.
         </Link>
 
-        <div className="flex items-center gap-8">
-          <span className="font-mono text-[11px] uppercase tracking-[0.15em] opacity-50">
+        <div className="flex items-center gap-6">
+          <span
+            className="hidden font-[var(--font-mono)] text-[11px] uppercase tracking-[0.15em] md:inline"
+            style={{ color: 'var(--lp-faint)' }}
+          >
             {business}
           </span>
           <Link
             href={'/dashboard/settings' as Route}
-            className="font-mono text-[11px] uppercase tracking-[0.15em] opacity-70 hover:opacity-100"
+            className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.15em] transition hover:opacity-100"
+            style={{ color: 'var(--lp-muted)' }}
           >
             Réglages
           </Link>

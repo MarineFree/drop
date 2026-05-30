@@ -24,9 +24,14 @@ export function ShareBar({ url }: ShareBarProps) {
       <button
         type="button"
         onClick={copy}
-        className="bg-ink px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em] text-cream"
+        className="rounded-xl px-4 py-2 font-[var(--font-lp-display)] text-xs font-semibold transition"
+        style={{
+          background: 'var(--lp-accent)',
+          color: 'oklch(20% 0.04 230)',
+          boxShadow: '0 0 0 1px var(--lp-accent), 0 8px 30px -8px var(--lp-glow)',
+        }}
       >
-        {copied ? 'Copié.' : 'Copier le lien'}
+        {copied ? 'Copié ✓' : 'Copier le lien'}
       </button>
       <ExternalShare
         label="LinkedIn"
@@ -44,7 +49,11 @@ function ExternalShare({ label, href }: { label: string; href: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="border border-ink/20 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em] transition hover:border-ink"
+      className="rounded-xl border px-4 py-2 font-[var(--font-mono)] text-[11px] uppercase tracking-[0.15em] transition hover:border-[var(--lp-accent)]"
+      style={{
+        borderColor: 'var(--lp-line)',
+        color: 'var(--lp-text)',
+      }}
     >
       {label}
     </a>

@@ -13,7 +13,7 @@ On utilise le **tool use** de l'API Anthropic, pas le mode "demande-lui du JSON 
 - Compatible avec le streaming (`input_json_delta` events)
 - Retry automatique si le modèle dévie
 
-Modèle : `claude-opus-4-7`. Pour les retries / fallback rapide, `claude-haiku-4-5-20251001`.
+Modèles : `claude-sonnet-4-6` par défaut, `claude-opus-4-7` opt-in via `DROP_GENERATION_MODEL=opus`. Pas de Haiku — fallback automatique Opus → Sonnet en cas d'échec API.
 
 ---
 
@@ -154,12 +154,17 @@ const GENERATE_TOOL: Anthropic.Tool = {
 
 ## 5. L'appel principal (non-streaming)
 
-```ts
-import { DropContentSchema, type DropContent } from './schema'
+Le pipeline réel choisit le modèle primaire via `DROP_GENERATION_MODEL`, fait l'appel `messages.create`, extrait le bloc `tool_use`, puis valide Zod :
 
-export async function generateDrop(userInput: string): Promise<DropContent> {
+```ts
+const MODEL_IDS = {
+  opus: 'claude-opus-4-7',
+  sonnet: 'claude-sonnet-4-6',
+} as const
+
+async function callAndValidate(userInput: string, model: 'opus' | 'sonnet'): Promise<DropContent> {
   const response = await client.messages.create({
-    model: 'claude-opus-4-7',
+    model: MODEL_IDS[model],
     max_tokens: 2048,
     system: SYSTEM_PROMPT,
     tools: [GENERATE_TOOL],
@@ -169,40 +174,27 @@ export async function generateDrop(userInput: string): Promise<DropContent> {
 
   const toolUse = response.content.find(b => b.type === 'tool_use')
   if (!toolUse || toolUse.type !== 'tool_use') {
-    throw new Error('No tool_use in response')
+    throw new Error(`No tool_use block (model=${model})`)
   }
 
-  // Validation Zod stricte
   const parsed = DropContentSchema.safeParse(toolUse.input)
-  if (!parsed.success) {
-    throw new ValidationError(parsed.error)
-  }
-
+  if (!parsed.success) throw new DropContentValidationError(parsed.error)
   return parsed.data
 }
 ```
 
+L'API publique exposée par `src/lib/ai/generate.ts` est `generateDrop(userInput): Promise<{ content, modelUsed }>` — le `modelUsed` est persisté en DB pour mesurer la fréquence du fallback en analytics.
+
 ---
 
-## 6. Retry strategy
+## 6. Retry & fallback (deux mécanismes orthogonaux)
 
-Si la validation Zod échoue (rare avec tool_use mais possible si bornes `min/max` violées) :
+Implémentés dans `generateDrop` (cf. `src/lib/ai/generate.ts`) :
 
-```ts
-async function generateDropWithRetry(userInput: string, attempt = 0): Promise<DropContent> {
-  try {
-    return await generateDrop(userInput)
-  } catch (err) {
-    if (err instanceof ValidationError && attempt < 1) {
-      const fixMessage = `Ton dernier output a échoué la validation : ${err.message}. Recommence en respectant strictement les bornes min/max du schema.`
-      return await generateDrop(`${userInput}\n\n[SYSTÈME] ${fixMessage}`, attempt + 1)
-    }
-    throw err
-  }
-}
-```
+1. **Zod-retry SAME model** — si le tool_use viole le schema, retry **une fois** sur le **même** modèle avec les `paths` violés injectés dans le message user. Adresse la variance qualité (Sonnet qui rate ponctuellement `meta.tone:80`).
+2. **Fallback modèle** — si le modèle primaire échoue (erreur API OU 2 Zod fails), bascule sur **Sonnet** (palier intermédiaire). Adresse les échecs API transitoires et les modèles structurellement incapables de respecter le schema.
 
-Une seule tentative de retry. Au-delà, on échoue et on log. Mieux vaut une erreur claire qu'un drop bancal.
+Worst case en appels API : 2 modèles × 2 tentatives = 4 (primary = `opus` + fallback `sonnet`). Si primary est déjà `sonnet` → max 2 appels. Pas de backoff exponentiel, pas de 3e tentative.
 
 ---
 

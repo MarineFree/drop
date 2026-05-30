@@ -6,7 +6,7 @@ L'espace où le patron PME crée, suit et gère ses Drops. Cohérent visuellemen
 
 ## 1. Principe directeur
 
-Le dashboard est **utilitaire mais pas générique**. Tentation à éviter : reproduire un dashboard Linear/Vercel avec sidebar grise + cards arrondies + iconographie Lucide partout. C'est "AI slop d'admin" et ça démolit l'identité visuelle qu'on a construite côté templates publics.
+Le dashboard est **utilitaire mais pas générique**. Tentation à éviter : reproduire un dashboard Linear/Vercel avec sidebar grise + cards arrondies + iconographie Lucide partout. Ce rendu admin générique casserait la cohérence avec les pages publiques.
 
 Règles :
 - Mêmes fonts que les templates (Instrument Serif + JetBrains Mono + Geist).
@@ -19,54 +19,55 @@ Règles :
 
 ## 2. Pages à construire
 
+Pas de route group `(creator)/` : les pages vivent directement sous `src/app/` aux chemins finaux. La protection auth se fait par `requireUser()` dans chaque Server Component sensible (cf. Docs/05 §9 et §10).
+
 ```
-src/app/(creator)/
-├── layout.tsx              # nav top + container
+src/app/
 ├── dashboard/
 │   ├── page.tsx            # liste des drops + KPIs globaux
-│   ├── new/
-│   │   └── page.tsx        # création (couvert dans 03-pipeline)
 │   ├── d/[id]/
 │   │   └── page.tsx        # détail d'un drop + stats
-│   ├── onboarding/
-│   │   └── page.tsx        # 1ère connexion : business + trade
 │   └── settings/
 │       └── page.tsx        # profil + préférences
+├── new/
+│   └── page.tsx            # création (couvert dans 03-pipeline)
+└── onboarding/
+    └── page.tsx            # 1ère connexion : business + trade
 ```
+
+> Pour partager le header `DashboardHeader` entre `/dashboard`, `/dashboard/d/[id]`, `/dashboard/settings` (et `/new`), il est monté **en composant** dans chaque page, pas via un `layout.tsx` parent.
 
 ---
 
-## 3. Layout creator (`src/app/(creator)/layout.tsx`)
+## 3. Header du dashboard (`src/components/dashboard/DashboardHeader.tsx`)
+
+> **Notes sur les snippets §3 à §11** :
+> - Les imports `motion/react` (framer-motion) sont illustratifs ; l'implémentation réelle est CSS-only (`@keyframes` dans `globals.css`, classes `animate-fade-in` / `animate-slide-up`). Cf. `CLAUDE.md`.
+> - L'auth n'est pas faite via un `layout.tsx` parent : chaque Server Component (`/dashboard/page.tsx`, `/dashboard/d/[id]/page.tsx`, etc.) appelle directement `requireUser()` puis monte `<DashboardHeader user={user} />` au-dessus de son contenu.
 
 ```tsx
 import Link from 'next/link'
-import { requireUser } from '@/lib/auth-server'
-import { SignOutButton } from '@/components/auth/sign-out-button'
+import type { User } from '@prisma/client'
+import { SignOutButton } from '@/components/dashboard/SignOutButton'
 
-export default async function CreatorLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireUser()
-
+export function DashboardHeader({ user }: { user: User }) {
   return (
-    <div className="min-h-screen bg-cream-grain text-ink">
-      <nav className="border-b border-ink/10">
-        <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-          <Link href="/dashboard" className="font-display text-2xl tracking-tight">
-            Drop.
-          </Link>
+    <nav className="border-b border-ink/10">
+      <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
+        <Link href="/dashboard" className="font-display text-2xl tracking-tight">
+          Drop.
+        </Link>
 
-          <div className="flex items-center gap-8">
-            <NavLink href="/dashboard">Drops</NavLink>
-            <NavLink href="/dashboard/settings">Compte</NavLink>
-            <span className="font-mono text-[11px] uppercase tracking-[0.15em] opacity-50">
-              {user.business ?? user.email}
-            </span>
-            <SignOutButton />
-          </div>
+        <div className="flex items-center gap-8">
+          <NavLink href="/dashboard">Drops</NavLink>
+          <NavLink href="/dashboard/settings">Compte</NavLink>
+          <span className="font-mono text-[11px] uppercase tracking-[0.15em] opacity-50">
+            {user.business ?? user.email}
+          </span>
+          <SignOutButton />
         </div>
-      </nav>
-
-      <main className="max-w-6xl mx-auto px-6 py-12">{children}</main>
-    </div>
+      </div>
+    </nav>
   )
 }
 
@@ -86,7 +87,7 @@ Pas de logo Lucide, pas d'avatar généré. La nav est honnête.
 
 ---
 
-## 4. Page dashboard (`src/app/(creator)/dashboard/page.tsx`)
+## 4. Page dashboard (`src/app/dashboard/page.tsx`)
 
 ```tsx
 import Link from 'next/link'
@@ -321,7 +322,7 @@ Détails :
 
 ---
 
-## 7. Page détail d'un Drop (`src/app/(creator)/dashboard/d/[id]/page.tsx`)
+## 7. Page détail d'un Drop (`src/app/dashboard/d/[id]/page.tsx`)
 
 ```tsx
 import { notFound } from 'next/navigation'
@@ -528,7 +529,7 @@ Le `#a3f8c1` (hash visiteur tronqué) sur la droite donne une impression "honest
 
 ---
 
-## 10. Onboarding (`src/app/(creator)/dashboard/onboarding/page.tsx`)
+## 10. Onboarding (`src/app/onboarding/page.tsx`)
 
 ```tsx
 'use client'
@@ -622,7 +623,7 @@ L'endpoint `/api/user/profile` est une route simple qui met à jour `User.busine
 
 ---
 
-## 11. Settings (`src/app/(creator)/dashboard/settings/page.tsx`)
+## 11. Settings (`src/app/dashboard/settings/page.tsx`)
 
 Minimal. Pour le hackathon, on ne fait pas un panneau préférences complet.
 
@@ -666,7 +667,7 @@ export default async function SettingsPage() {
 
 Le `viewCount` et `ctaCount` sont mis à jour à chaque event dans `trackEvent` (cf. 02-database.md). Pour le dashboard, ça suffit : pas besoin d'agréger en temps réel.
 
-Si tu remarques pendant la démo que les counts ne s'affichent pas immédiatement (problème de cache Next), force une revalidation après la création d'un drop :
+Si les counts ne s'affichent pas immédiatement (problème de cache Next), forcer une revalidation après la création d'un drop :
 
 ```ts
 import { revalidatePath } from 'next/cache'
@@ -697,15 +698,15 @@ Le dashboard est appelé plusieurs fois par session. Trois choses à surveiller 
 
 ---
 
-## 15. Ce que je n'ai PAS mis (et pourquoi)
+## 15. Hors scope assumé (et pourquoi)
 
-Ne perds pas de temps là-dessus en 2 semaines :
+Volontairement écartés pour cette itération :
 
-- **Graphiques temporels** (vues par jour) : sexy mais inutile à montrer. La timeline d'events suffit.
-- **Filtres / recherche** : pas de scaling problem en hackathon.
-- **Export CSV** : aucun jury ne va te le demander en pitch.
-- **Notifications email** ("Ton Drop expire demain !") : nice-to-have, mais 4 h de boulot pour un gain démo nul.
-- **Multi-user / teams** : Drop est mono-utilisateur. Pas la peine de prévoir.
-- **Édition d'un drop publié** : par design, un drop est immuable. C'est cohérent avec la promesse "éphémère, comme un événement".
+- **Graphiques temporels** (vues par jour) : sexy mais peu actionnable à ce volume. La timeline d'events suffit.
+- **Filtres / recherche** : pas de problème de scaling à ce stade.
+- **Export CSV** : pas de cas d'usage clair pour les premiers utilisateurs.
+- **Notifications email** (« Ton Drop expire demain ! ») : nice-to-have, mais coût de dev disproportionné par rapport à l'apport perçu.
+- **Multi-user / teams** : Drop est mono-utilisateur, par design.
+- **Édition d'un drop publié** : par design, un drop est immuable. C'est cohérent avec la promesse « éphémère, comme un événement ».
 
-Concentre-toi sur : **liste + détail + onboarding**. Trois pages qui marchent vraiment > dix pages qui ne marchent pas tout à fait.
+Périmètre prioritaire : **liste + détail + onboarding**. Préférer trois pages qui fonctionnent à dix pages incomplètes.

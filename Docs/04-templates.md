@@ -1,6 +1,6 @@
 # 04 — Templates React
 
-Les 5 templates sont **le** point critique du projet. Le pipeline IA peut être parfait, si le visuel est mou, le jury ne retient rien. Mets 35-40 % du temps total ici, pas 10 %.
+Les 5 templates sont **le** point critique du projet. Le pipeline IA peut être parfait, si le visuel est mou, l'expérience perd l'essentiel. Allouer ~35-40 % du temps de build à ces composants, pas 10 %.
 
 ---
 
@@ -8,15 +8,17 @@ Les 5 templates sont **le** point critique du projet. Le pipeline IA peut être 
 
 Le piège classique du multi-template : tous les templates finissent par se ressembler (même grille, même typo, même rythme). Résultat : on génère 100 drops, tous identiques. Mort de la promesse.
 
-**Règle absolue** : chaque template a une **personnalité visuelle propre** (palette dominante, font display, rythme de composition). Un Drop `manifesto` ne doit jamais ressembler à un Drop `quiz`. C'est ce qui rend chaque output mémorable.
+**Règle absolue** : chaque template a une **personnalité visuelle propre** — composition, font display, rythme. Un Drop `manifesto` ne doit jamais ressembler à un Drop `quiz`.
 
-| Template | Personnalité | Display font | Palette dominante |
+**Note importante sur les couleurs** : la palette est **patron-side**, pas template-side. Le patron choisit une `User.brandColor` (8 palettes prédéfinies dans `src/lib/brand-palettes.ts` — violet, rose, terracotta, sauge, sapin, indigo, or, noir). Shell injecte 5 CSS vars (`--bg`, `--text`, `--accent`, `--accent-fg`, `--soft`) qui surchargent tout. Le `meta.theme` retourné par l'IA est **kept-for-compat** (présent dans le Zod schema) mais ignoré côté Shell — il devient mort code. Cohérent : un patron a UNE identité chromatique, ses drops la suivent quels que soient les sujets.
+
+| Template | Personnalité | Display font | Composition |
 |---|---|---|---|
-| `how-to` | Pédagogique, swiss design | Instrument Serif | Cream + violet accents |
-| `manifesto` | Brutaliste, intense | Fraunces (italic) | Dark monochrome |
-| `case-study` | Éditorial longform | Newsreader | Cream + ardoise |
-| `quiz` | Ludique, vivant | Instrument Serif | Violet plein |
-| `announcement` | Affiche, événementiel | Fraunces (display) | Cream + accent vif contextuel |
+| `how-to` | Pédagogique, swiss design | Instrument Serif | Sections numérotées + image hero asymétrique |
+| `manifesto` | Brutaliste, intense | Fraunces (italic) | Pas d'image hero, typo géante italique, sections en chiffres romains |
+| `case-study` | Éditorial longform | Newsreader | Image hero en N&B, body en colonne lecture |
+| `quiz` | Ludique, vivant | Instrument Serif | Mini-sections en cartes, interaction centrale |
+| `announcement` | Affiche, événementiel | Fraunces (display) | Date d'aujourd'hui géante, hiérarchie inversée |
 
 ---
 
@@ -102,68 +104,48 @@ Le grain SVG inline est crucial pour que le cream ne paraisse pas plat / "AI slo
 
 ---
 
-## 4. Shell commun (`src/components/templates/shell.tsx`)
+## 4. Shell commun (`src/components/templates/Shell.tsx`)
 
-Layout enveloppant. Hérité par tous les templates. Gère le tracking, le compteur d'expiration, le branding minimal.
+Layout enveloppant. Hérité par tous les templates. Injecte la palette du patron en CSS vars et affiche le compteur d'expiration. **Pas de tracking ici** : le `ScrollTracker` est monté côté page `/d/[slug]` (cf. Docs/03 §5), le tracking VIEW est serveur.
 
 ```tsx
-'use client'
-import { useEffect, useState } from 'react'
-import { motion } from 'motion/react'
-import { ScrollTracker } from './tracker'
+import type { ReactNode } from 'react'
+import { paletteStyle } from '@/lib/brand-palettes'
 
 interface ShellProps {
-  children: React.ReactNode
+  children: ReactNode
   expiresAt: Date
   business: string | null
-  dropId: string
-  theme: 'cream' | 'violet' | 'dark'
+  /** Clé de palette (cf. `User.brandColor` / brand-palettes.ts). null → défaut violet. */
+  brandColor: string | null
 }
 
-const THEMES = {
-  cream: { bg: 'bg-cream-grain', text: 'text-ink', accent: 'text-violet' },
-  violet: { bg: 'bg-[#5246F5]', text: 'text-cream', accent: 'text-cream' },
-  dark: { bg: 'bg-ink', text: 'text-cream', accent: 'text-violet-soft' },
-}
-
-function useTimeLeft(expiresAt: Date) {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const i = setInterval(() => setNow(Date.now()), 30_000)
-    return () => clearInterval(i)
-  }, [])
-  const diff = Math.max(0, expiresAt.getTime() - now)
+function formatTimeLeft(expiresAt: Date): string {
+  const diff = Math.max(0, expiresAt.getTime() - Date.now())
   const days = Math.floor(diff / 86_400_000)
   const hours = Math.floor((diff % 86_400_000) / 3_600_000)
-  return { days, hours, expired: diff === 0 }
+  return `${days}j ${hours}h`
 }
 
-export function Shell({ children, expiresAt, business, dropId, theme }: ShellProps) {
-  const t = THEMES[theme]
-  const { days, hours } = useTimeLeft(expiresAt)
+export function Shell({ children, expiresAt, business, brandColor }: ShellProps) {
+  const timeLeft = formatTimeLeft(expiresAt)
+  const style = paletteStyle(brandColor)
 
   return (
-    <div className={`min-h-screen ${t.bg} ${t.text} font-body antialiased`}>
-      <ScrollTracker dropId={dropId} />
-
-      {/* Header minimal */}
-      <header className="sticky top-0 z-10 px-6 py-4 flex justify-between items-center font-mono text-[11px] uppercase tracking-[0.15em] mix-blend-difference">
+    <div
+      style={style}
+      className="min-h-screen bg-[var(--bg)] font-body text-[var(--text)] antialiased"
+    >
+      <header className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 font-mono text-[11px] uppercase tracking-[0.15em] mix-blend-difference">
         <span className="opacity-70">{business ?? 'Drop'}</span>
-        <motion.span
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.7 }}
-          transition={{ delay: 1.2 }}
-        >
-          Expire dans {days}j {hours}h
-        </motion.span>
+        <span className="opacity-70">Expire dans {timeLeft}</span>
       </header>
 
-      <main className="px-6 pb-32 max-w-2xl mx-auto">{children}</main>
+      <main className="mx-auto max-w-2xl px-6 pb-32">{children}</main>
 
-      <footer className="px-6 py-8 border-t border-current/10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-50 text-center">
-          Drop éphémère · {business ?? 'Anonyme'}
-        </p>
+      <footer className="space-y-1 border-t border-[var(--text)]/10 px-6 py-8 text-center font-mono text-[10px] uppercase tracking-[0.2em] opacity-50">
+        <p>Drop éphémère · {business ?? 'Anonyme'}</p>
+        <p>Expire le {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(expiresAt)}</p>
       </footer>
     </div>
   )
@@ -171,9 +153,15 @@ export function Shell({ children, expiresAt, business, dropId, theme }: ShellPro
 ```
 
 **Détails à noter** :
-- `mix-blend-difference` sur le header pour qu'il reste lisible quel que soit le fond (sur image hero notamment).
-- Compteur en jours/heures, mis à jour toutes les 30s sans bloquer le render.
-- Pas de logo Drop. C'est volontaire : le drop appartient à la marque, pas à Drop. Branding discret en footer.
+- `paletteStyle(brandColor)` injecte 5 CSS vars (`--bg`, `--text`, `--accent`, `--accent-fg`, `--soft`) sur le container racine. Tous les enfants consomment via `bg-[var(--bg)]` / `text-[var(--text)]` / `text-[var(--accent)]` etc. — pas de classes Tailwind brutes type `bg-cream` côté templates publics.
+- Le compteur d'expiration est calculé **côté serveur** au render — pas d'horloge live, pas de `setInterval`. La page est `force-dynamic`, chaque hit donne un compteur frais (cf. Docs/03 §5).
+- `mix-blend-difference` sur le header pour rester lisible quel que soit le fond.
+- Pas de logo Drop. Le drop appartient à la marque ; branding discret en footer.
+
+> **Notes sur les snippets §5 à §12** — deux écarts par rapport à l'implémentation réelle, à lire comme du pseudocode d'intention :
+>
+> 1. **Animations** : les `motion.X` (framer-motion) sont illustratifs. L'implémentation réelle utilise des animations CSS pures (`@keyframes` dans `src/app/globals.css`, classes Tailwind `animate-fade-in` / `animate-slide-up`). `framer-motion` est encore listé dans `package.json` mais aucun composant ne l'importe (vérifié par grep `src/`). Cf. `CLAUDE.md` : « pas de framer-motion ».
+> 2. **Couleurs** : les classes Tailwind brutes (`bg-violet`, `text-cream`, `bg-ink`…) dans les snippets sont illustratives de l'intention chromatique. Les templates publics réels consomment **exclusivement** les CSS vars injectées par Shell (`bg-[var(--bg)]`, `text-[var(--text)]`, `text-[var(--accent)]`, `bg-[var(--accent)] text-[var(--accent-fg)]`, `border-[var(--text)]/15`). La palette vient de `User.brandColor` (cf. §1 + `src/lib/brand-palettes.ts`).
 
 ---
 
@@ -516,7 +504,7 @@ export function HowToTemplate({ content, imageUrl, expiresAt, business, dropId }
 }
 ```
 
-**Détail design** : l'image hero est volontairement décalée à droite (`-mr-12`) sur mobile pour créer une asymétrie. Pas centrée. C'est un détail mais ça casse le "AI slop" centré.
+**Détail design** : l'image hero est volontairement décalée à droite (`-mr-12`) sur mobile pour créer une asymétrie. Pas centrée. Petit détail qui évite le rendu trop centré et générique.
 
 ---
 
@@ -807,17 +795,17 @@ Pour chaque template, vérifier :
 
 ---
 
-## 14. Inspirations à étudier (1 h à investir)
+## 14. Références visuelles consultées
 
-Avant de coder les templates, ouvre ces sites et regarde comment ils traitent typo + rythme + image :
+Sites consultés pour caler typo + rythme + image avant d'écrire les templates :
 
-- **how-to** : pitchfork.com (les reviews), pudding.cool (data-storytelling)
-- **manifesto** : are.na, dirt.fyi, exemples de manifestes brutalistes sur godly.website
+- **how-to** : pitchfork.com (reviews), pudding.cool (data-storytelling)
+- **manifesto** : are.na, dirt.fyi, exemples brutalistes sur godly.website
 - **case-study** : nytimes.com/section/magazine, harpers.org, longform.org
 - **quiz** : nytimes.com/spelling-bee, atlasobscura quizzes
 - **announcement** : the-pool.com, jacquemus.com (drops produits), it's nice that newsletters
 
-Pas pour copier — pour calibrer ton œil sur ce qui constitue un "vrai" rendu vs un rendu "AI slop". 1 h d'observation économise 5 h de tâtonnement.
+L'objectif : calibrer l'œil sur ce qui distingue un rendu éditorial soigné d'un rendu générique IA, et limiter le tâtonnement en phase de design.
 
 ---
 

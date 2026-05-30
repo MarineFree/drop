@@ -201,10 +201,15 @@ const SEED_SLUGS = {
   resto: 'demo-resto-menu-semaine',
 }
 
-// Image hero : null pour rester reproductible offline (aucun appel fal.ai au
-// seed). Les templates gèrent gracieusement imageUrl=null. Pour des seeds avec
-// images "marketing", régénérer manuellement via /new après le déploiement.
-const SEED_IMAGE_URL: string | null = null
+// Images hero pré-générées via fal.ai (cf. scripts/seed-images.ts qu'on a lancé
+// une fois localement). Hardcodées pour rester reproductibles offline.
+// Si tu veux régénérer (ex : nouveau prompt) : relance `scripts/seed-images.ts`
+// avec un FAL_KEY valide, copie les nouvelles URLs ici, re-seed.
+const SEED_IMAGES: Record<'plombier' | 'coach' | 'resto', string> = {
+  plombier: 'https://v3b.fal.media/files/b/0a9c4cce/JtUxNIfz22GsLzc4I8yPo.jpg',
+  coach: 'https://v3b.fal.media/files/b/0a9c4cce/qaWa8q1SkHUzS6LYcZlei.jpg',
+  resto: 'https://v3b.fal.media/files/b/0a9c4cce/ZNa8PHDtvSbVW-Xb7G1ZE.jpg',
+}
 
 const PLOMBIER_CONTENT: DropContent = {
   template_type: 'how-to',
@@ -320,6 +325,7 @@ interface DropSeedSpec {
   content: DropContent
   templateType: TemplateType
   interactionType: InteractionType | null
+  imageUrl: string
 }
 
 async function upsertSeedDrop(spec: DropSeedSpec): Promise<void> {
@@ -341,6 +347,7 @@ async function upsertSeedDrop(spec: DropSeedSpec): Promise<void> {
     update: {
       // Re-aligne le contenu sur la source seed si on a édité ce fichier.
       content: validated as unknown as object,
+      imageUrl: spec.imageUrl,
       templateType: spec.templateType,
       interactionType: spec.interactionType,
       hasInteraction,
@@ -353,7 +360,7 @@ async function upsertSeedDrop(spec: DropSeedSpec): Promise<void> {
       userId: spec.userId,
       rawInput: spec.rawInput,
       content: validated as unknown as object,
-      imageUrl: SEED_IMAGE_URL,
+      imageUrl: spec.imageUrl,
       templateType: spec.templateType,
       hasAudio: false,
       hasInteraction,
@@ -376,6 +383,7 @@ async function seedDemoDrops(userIds: Record<DemoUserKey, string>): Promise<void
       content: PLOMBIER_CONTENT,
       templateType: TemplateType.HOW_TO,
       interactionType: null,
+      imageUrl: SEED_IMAGES.plombier,
     },
     {
       userId: userIds.coach,
@@ -385,6 +393,7 @@ async function seedDemoDrops(userIds: Record<DemoUserKey, string>): Promise<void
       content: COACH_CONTENT,
       templateType: TemplateType.QUIZ,
       interactionType: InteractionType.POLL,
+      imageUrl: SEED_IMAGES.coach,
     },
     {
       userId: userIds.resto,
@@ -394,6 +403,7 @@ async function seedDemoDrops(userIds: Record<DemoUserKey, string>): Promise<void
       content: RESTO_CONTENT,
       templateType: TemplateType.ANNOUNCEMENT,
       interactionType: null,
+      imageUrl: SEED_IMAGES.resto,
     },
   ]
 

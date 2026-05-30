@@ -10,10 +10,13 @@ const KIND_LABEL: Record<string, string> = {
   LEAD_SUBMITTED: 'A laissé ses coordonnées',
 }
 
+// Couleurs sémantiques alignées Direction B :
+// - cyan accent : CTA_CLICK + LEAD_SUBMITTED (conversion)
+// - vert : INTERACTION_DONE (engagement profond)
 const KIND_COLOR: Record<string, string> = {
-  CTA_CLICK: 'text-violet',
-  LEAD_SUBMITTED: 'text-violet',
-  INTERACTION_DONE: 'text-olive',
+  CTA_CLICK: 'var(--lp-accent)',
+  LEAD_SUBMITTED: 'var(--lp-accent)',
+  INTERACTION_DONE: 'oklch(78% 0.14 150)',
 }
 
 function formatRelative(d: Date): string {
@@ -26,32 +29,45 @@ function formatRelative(d: Date): string {
   return `${Math.floor(h / 24)}j`
 }
 
-// Liste verticale, dense, anonymisée. Pas de graphique : pas assez de données
-// pour qu'un chart soit utile. Le `#abcdef` tronqué à droite rend l'unicité
-// visiteur visible sans identifier.
 export function EventsTimeline({ events }: { events: DropEvent[] }) {
   if (events.length === 0) {
     return (
-      <p className="py-8 font-display text-2xl italic opacity-60">
+      <p
+        className="py-8 font-[var(--font-lp-display)] text-2xl"
+        style={{ color: 'var(--lp-muted)' }}
+      >
         Aucune activité encore. Le Drop a peut-être besoin d&apos;un peu de partage.
       </p>
     )
   }
 
   return (
-    <ul className="divide-y divide-ink/10 border-y border-ink/10">
+    <ul
+      className="border-y"
+      style={{ borderColor: 'var(--lp-line)' }}
+    >
       {events.map(e => (
         <li
           key={e.id}
-          className="-mx-2 flex items-center gap-4 px-2 py-3 hover:bg-ink/[0.02]"
+          className="-mx-2 flex items-center gap-4 px-2 py-3 transition hover:bg-[var(--lp-bg2)]"
+          style={{ borderBottom: '1px solid var(--lp-line)' }}
         >
-          <span className="w-24 font-mono text-[10px] uppercase tracking-[0.15em] tabular-nums opacity-50">
+          <span
+            className="w-24 font-[var(--font-mono)] text-[10px] uppercase tracking-[0.15em] tabular-nums"
+            style={{ color: 'var(--lp-faint)' }}
+          >
             {formatRelative(e.createdAt)}
           </span>
-          <span className={`flex-1 text-sm ${KIND_COLOR[e.kind] ?? ''}`}>
+          <span
+            className="flex-1 text-sm"
+            style={{ color: KIND_COLOR[e.kind] ?? 'var(--lp-text)' }}
+          >
             {KIND_LABEL[e.kind] ?? e.kind}
           </span>
-          <span className="hidden font-mono text-[10px] opacity-40 md:inline">
+          <span
+            className="hidden font-[var(--font-mono)] text-[10px] md:inline"
+            style={{ color: 'var(--lp-faint)' }}
+          >
             #{e.visitorHash.slice(0, 6)}
           </span>
         </li>

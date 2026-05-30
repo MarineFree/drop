@@ -52,16 +52,30 @@ export function OnboardingClient() {
 
   const saving = phase === 'saving'
 
+  const inputClass =
+    'w-full rounded-xl border px-5 py-4 font-[var(--font-mono)] text-sm outline-none transition focus:border-[var(--lp-accent)]'
+  const inputStyle: React.CSSProperties = {
+    background: 'var(--lp-panel)',
+    borderColor: 'var(--lp-line)',
+    color: 'var(--lp-text)',
+  }
+
   return (
     <div className="space-y-10">
       <header className="space-y-6">
-        <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-violet">
+        <p
+          className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.25em]"
+          style={{ color: 'var(--lp-accent)' }}
+        >
           Onboarding
         </p>
-        <h1 className="font-display text-[clamp(36px,7vw,60px)] leading-[0.95] tracking-[-0.02em]">
+        <h1 className="font-[var(--font-lp-display)] text-[clamp(36px,7vw,60px)] font-bold leading-[0.95] tracking-[-0.03em]">
           Quelques infos pour calibrer Drop.
         </h1>
-        <p className="max-w-md font-editorial text-lg italic leading-relaxed opacity-80">
+        <p
+          className="max-w-md text-lg leading-relaxed"
+          style={{ color: 'var(--lp-muted)' }}
+        >
           Drop utilisera ces données pour ajuster le ton et le format des contenus générés.
         </p>
       </header>
@@ -70,7 +84,8 @@ export function OnboardingClient() {
         <div className="space-y-2">
           <label
             htmlFor="business"
-            className="block font-mono text-[10px] uppercase tracking-[0.2em] opacity-70"
+            className="block font-[var(--font-mono)] text-[10px] uppercase tracking-[0.2em]"
+            style={{ color: 'var(--lp-muted)' }}
           >
             Nom de ta structure
           </label>
@@ -84,14 +99,16 @@ export function OnboardingClient() {
             onChange={e => setBusiness(e.target.value)}
             placeholder="Plomberie Lyon Centre"
             disabled={saving}
-            className="w-full rounded-sm border border-current/30 bg-transparent px-5 py-4 font-mono text-sm outline-none transition placeholder:opacity-40 focus:border-current"
+            className={inputClass}
+            style={inputStyle}
           />
         </div>
 
         <div className="space-y-2">
           <label
             htmlFor="trade"
-            className="block font-mono text-[10px] uppercase tracking-[0.2em] opacity-70"
+            className="block font-[var(--font-mono)] text-[10px] uppercase tracking-[0.2em]"
+            style={{ color: 'var(--lp-muted)' }}
           >
             Métier
           </label>
@@ -101,7 +118,8 @@ export function OnboardingClient() {
             value={trade}
             onChange={e => setTrade(e.target.value as TradeValue)}
             disabled={saving}
-            className="w-full appearance-none rounded-sm border border-current/30 bg-transparent px-5 py-4 font-mono text-sm outline-none transition focus:border-current"
+            className={`${inputClass} appearance-none`}
+            style={inputStyle}
           >
             <option value="" disabled>
               Choisis…
@@ -117,7 +135,13 @@ export function OnboardingClient() {
         <button
           type="submit"
           disabled={!canSubmit || saving}
-          className="w-full rounded-sm bg-ink px-8 py-4 font-mono text-xs uppercase tracking-[0.2em] text-cream transition disabled:cursor-not-allowed disabled:opacity-30"
+          className="w-full rounded-xl px-8 py-4 font-[var(--font-lp-display)] text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-30"
+          style={{
+            background: 'var(--lp-accent)',
+            color: 'oklch(20% 0.04 230)',
+            boxShadow:
+              '0 0 0 1px var(--lp-accent), 0 8px 30px -8px var(--lp-glow)',
+          }}
         >
           {saving ? 'Enregistrement…' : 'Continuer'}
         </button>
@@ -125,7 +149,10 @@ export function OnboardingClient() {
 
       {phase === 'error' && error && (
         <div className="animate-fade-in space-y-2">
-          <p className="font-mono text-sm uppercase tracking-wider text-rouille">
+          <p
+            className="font-[var(--font-mono)] text-sm uppercase tracking-wider"
+            style={{ color: 'oklch(72% 0.15 30)' }}
+          >
             {error}
           </p>
         </div>

@@ -31,12 +31,17 @@ export function BrandPalettePicker({ selected, name = 'brandColor' }: BrandPalet
                 onClick={() => setCurrent(key)}
                 aria-pressed={isActive}
                 aria-label={palette.label}
-                className={`relative aspect-square overflow-hidden rounded-md transition ${
+                className={`relative aspect-square overflow-hidden rounded-xl transition ${
                   isActive
-                    ? 'ring-2 ring-ink ring-offset-2 ring-offset-cream'
-                    : 'ring-1 ring-ink/10 hover:ring-ink/30'
+                    ? 'ring-2 ring-offset-2'
+                    : 'ring-1 hover:ring-2'
                 }`}
-                style={{ backgroundColor: palette.bg }}
+                style={{
+                  backgroundColor: palette.bg,
+                  // Ring contrasté sur le dark theme du dashboard (cyan accent)
+                  '--tw-ring-color': isActive ? 'var(--lp-accent)' : 'var(--lp-line)',
+                  '--tw-ring-offset-color': 'var(--lp-bg)',
+                } as React.CSSProperties}
               >
                 {/* Bande accent en bas (33%) → preview du couple bg/accent en un coup d'oeil */}
                 <span

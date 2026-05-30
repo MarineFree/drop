@@ -23,7 +23,7 @@ export default async function OnboardingPage() {
   if (user.business && user.trade) redirect('/dashboard')
 
   return (
-    <div className="min-h-screen bg-cream-grain font-body text-ink antialiased">
+    <div className="lp-root min-h-screen antialiased">
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
         <OnboardingClient />
       </main>

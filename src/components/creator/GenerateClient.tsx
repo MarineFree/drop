@@ -246,13 +246,19 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
     <div className="space-y-10">
       {/* Hero — toujours visible */}
       <header className="space-y-6">
-        <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-violet">
+        <p
+          className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.25em]"
+          style={{ color: 'var(--lp-accent)' }}
+        >
           Nouveau drop
         </p>
-        <h1 className="font-display text-[clamp(40px,8vw,72px)] leading-[0.95] tracking-[-0.02em]">
+        <h1 className="font-[var(--font-lp-display)] text-[clamp(40px,8vw,72px)] font-bold leading-[0.95] tracking-[-0.03em]">
           Une phrase. Un drop.
         </h1>
-        <p className="max-w-xl font-editorial text-xl italic leading-relaxed opacity-80 md:text-2xl">
+        <p
+          className="max-w-xl text-xl leading-relaxed md:text-2xl"
+          style={{ color: 'var(--lp-muted)' }}
+        >
           Décris ton idée. Drop choisit le format et le rend en 90 secondes.
         </p>
       </header>
@@ -268,16 +274,23 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
             value={input}
             onChange={e => {
               setInput(e.target.value)
-              // Édition manuelle = la source devient "tapée", on retire le hint vocal.
               if (voiceTranscribed) setVoiceTranscribed(false)
             }}
             placeholder={PLACEHOLDER}
             rows={6}
             maxLength={MAX_LEN}
             disabled={formDisabled}
-            className="w-full resize-none rounded-sm border border-current/20 bg-transparent p-4 font-body text-base leading-relaxed placeholder:opacity-50 focus:border-current focus:outline-none"
+            className="w-full resize-none rounded-xl border p-4 text-base leading-relaxed outline-none transition placeholder:opacity-50 focus:border-[var(--lp-accent)]"
+            style={{
+              background: 'var(--lp-panel)',
+              borderColor: 'var(--lp-line)',
+              color: 'var(--lp-text)',
+            }}
           />
-          <span className="absolute bottom-3 right-4 font-mono text-[10px] tabular-nums opacity-50">
+          <span
+            className="absolute bottom-3 right-4 font-[var(--font-mono)] text-[10px] tabular-nums"
+            style={{ color: 'var(--lp-faint)' }}
+          >
             {inputLen} / {MAX_LEN}
           </span>
         </div>
@@ -311,23 +324,36 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={formDisabled}
-              className="font-mono text-[11px] uppercase tracking-[0.2em] opacity-60 transition hover:opacity-100 disabled:opacity-30"
+              className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.2em] transition hover:opacity-100 disabled:opacity-30"
+              style={{ color: 'var(--lp-muted)' }}
             >
               + Ajouter ma photo (optionnel)
             </button>
           ) : (
-            <div className="flex items-center gap-4 rounded-sm border border-current/15 bg-current/5 p-3">
-              {/* Preview thumbnail — URL.createObjectURL local, pas un fetch.
-                  next/image attend des hosts whitelist → on utilise <img> ici. */}
+            <div
+              className="flex items-center gap-4 rounded-xl border p-3"
+              style={{
+                background: 'var(--lp-panel)',
+                borderColor: 'var(--lp-line)',
+              }}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={filePreview ?? ''}
                 alt=""
-                className="h-12 w-16 flex-shrink-0 object-cover"
+                className="h-12 w-16 flex-shrink-0 rounded object-cover"
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-mono text-xs">{file.name}</p>
-                <p className="font-mono text-[10px] uppercase tracking-[0.15em] opacity-50">
+                <p
+                  className="truncate font-[var(--font-mono)] text-xs"
+                  style={{ color: 'var(--lp-text)' }}
+                >
+                  {file.name}
+                </p>
+                <p
+                  className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.15em]"
+                  style={{ color: 'var(--lp-faint)' }}
+                >
                   {(file.size / 1024).toFixed(0)} ko · sera utilisée à la place de l&apos;IA
                 </p>
               </div>
@@ -335,14 +361,18 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
                 type="button"
                 onClick={handleRemoveFile}
                 disabled={formDisabled}
-                className="font-mono text-[10px] uppercase tracking-[0.2em] text-rouille opacity-70 transition hover:opacity-100"
+                className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.2em] transition hover:opacity-100"
+                style={{ color: 'oklch(72% 0.15 30)' }}
               >
                 Retirer
               </button>
             </div>
           )}
           {fileError && (
-            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-rouille">
+            <p
+              className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.15em]"
+              style={{ color: 'oklch(72% 0.15 30)' }}
+            >
               {fileError}
             </p>
           )}
@@ -353,7 +383,8 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
         <div className="mt-6 space-y-2">
           <label
             htmlFor="cta-url"
-            className="block font-mono text-[11px] uppercase tracking-[0.2em] opacity-60"
+            className="block font-[var(--font-mono)] text-[11px] uppercase tracking-[0.2em]"
+            style={{ color: 'var(--lp-muted)' }}
           >
             Lien du bouton (optionnel)
           </label>
@@ -365,14 +396,25 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
             onChange={e => setCtaUrl(e.target.value)}
             placeholder="https://ton-site.fr/contact"
             disabled={formDisabled}
-            className="w-full rounded-sm border border-current/20 bg-transparent p-3 font-body text-sm placeholder:opacity-40 focus:border-current focus:outline-none"
+            className="w-full rounded-xl border p-3 text-sm outline-none transition placeholder:opacity-40 focus:border-[var(--lp-accent)]"
+            style={{
+              background: 'var(--lp-panel)',
+              borderColor: 'var(--lp-line)',
+              color: 'var(--lp-text)',
+            }}
           />
           {!ctaUrlValid && (
-            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-rouille">
+            <p
+              className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.15em]"
+              style={{ color: 'oklch(72% 0.15 30)' }}
+            >
               URL invalide (http(s) uniquement).
             </p>
           )}
-          <p className="font-mono text-[10px] uppercase tracking-[0.15em] opacity-50">
+          <p
+            className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.15em]"
+            style={{ color: 'var(--lp-faint)' }}
+          >
             {ctaUrl.trim() === ''
               ? 'Sans lien, le bouton CTA ne sera pas affiché.'
               : 'Le bouton du drop renverra vers cette URL.'}
@@ -383,11 +425,20 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
           <button
             type="submit"
             disabled={!canSubmit || formDisabled}
-            className="rounded-sm bg-ink px-10 py-4 font-mono text-xs uppercase tracking-[0.2em] text-cream transition disabled:cursor-not-allowed disabled:opacity-30"
+            className="rounded-xl px-10 py-4 font-[var(--font-lp-display)] text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-30"
+            style={{
+              background: 'var(--lp-accent)',
+              color: 'oklch(20% 0.04 230)',
+              boxShadow:
+                '0 0 0 1px var(--lp-accent), 0 8px 30px -8px var(--lp-glow)',
+            }}
           >
             Générer le drop
           </button>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-50">
+          <p
+            className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.2em]"
+            style={{ color: 'var(--lp-faint)' }}
+          >
             Sept jours en ligne, puis ça disparaît.
           </p>
         </div>
@@ -397,29 +448,35 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
       {phase !== 'idle' && (
         <section className="space-y-4">
           {phase === 'uploading' && (
-            <p className="animate-fade-in font-mono text-sm">
-              <span className="text-violet">→</span> Téléversement de la photo…
+            <p className="animate-fade-in font-[var(--font-mono)] text-sm">
+              <span style={{ color: 'var(--lp-accent)' }}>→</span> Téléversement
+              de la photo…
             </p>
           )}
 
           {phase === 'streaming' && steps.length === 0 && (
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] opacity-50">
+            <p
+              className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.2em]"
+              style={{ color: 'var(--lp-faint)' }}
+            >
               La génération prend généralement 30 à 60 secondes.
             </p>
           )}
 
-          {/* Logs séquentiels — chaque <li> fade-in 220ms à son mount (animation CSS) */}
           {steps.length > 0 && (
-            <ul className="space-y-2 font-mono text-sm">
+            <ul className="space-y-2 font-[var(--font-mono)] text-sm">
               {steps.map((s, i) => (
                 <li
                   key={i}
                   className="animate-fade-in flex flex-wrap items-baseline gap-2"
                 >
-                  <span className="text-violet">→</span>
+                  <span style={{ color: 'var(--lp-accent)' }}>→</span>
                   <span>{s.label}</span>
                   {s.modelUsed && (
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-50">
+                    <span
+                      className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.2em]"
+                      style={{ color: 'var(--lp-faint)' }}
+                    >
                       · modèle {s.modelUsed}
                     </span>
                   )}
@@ -430,8 +487,16 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
 
           {phase === 'done' && (
             <div className="animate-fade-in space-y-2 pt-4">
-              <p className="font-display text-3xl leading-tight">Prêt.</p>
-              <p className="font-mono text-[11px] uppercase tracking-[0.2em] opacity-50">
+              <p
+                className="font-[var(--font-lp-display)] text-3xl font-bold leading-tight"
+                style={{ color: 'var(--lp-accent)' }}
+              >
+                Prêt.
+              </p>
+              <p
+                className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.2em]"
+                style={{ color: 'var(--lp-faint)' }}
+              >
                 Redirection en cours…
               </p>
             </div>
@@ -439,14 +504,21 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
 
           {phase === 'error' && error && (
             <div className="animate-fade-in space-y-3 pt-4">
-              <p className="font-mono text-sm uppercase tracking-wider text-rouille">
+              <p
+                className="font-[var(--font-mono)] text-sm uppercase tracking-wider"
+                style={{ color: 'oklch(72% 0.15 30)' }}
+              >
                 Échec{error.step ? ` à l'étape "${error.step}"` : ''}
               </p>
               <p className="text-base">{error.message}</p>
               <button
                 type="button"
                 onClick={handleRetry}
-                className="rounded-sm border border-current/40 px-6 py-2 font-mono text-xs uppercase tracking-[0.2em] transition hover:border-current"
+                className="rounded-xl border px-6 py-2 font-[var(--font-mono)] text-xs uppercase tracking-[0.2em] transition hover:border-[var(--lp-accent)]"
+                style={{
+                  borderColor: 'var(--lp-line)',
+                  color: 'var(--lp-text)',
+                }}
               >
                 Réessayer
               </button>

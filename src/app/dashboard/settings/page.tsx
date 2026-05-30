@@ -86,26 +86,39 @@ export default async function SettingsPage({ searchParams }: PageProps) {
       : DEFAULT_BRAND_PALETTE
 
   return (
-    <div className="min-h-screen bg-cream-grain text-ink">
+    <div className="lp-root min-h-screen">
       <DashboardHeader business={user.business ?? 'Drop'} />
 
       <main className="mx-auto max-w-2xl px-6 py-12">
         <div className="mb-12">
           <Link
             href="/dashboard"
-            className="font-mono text-[11px] uppercase tracking-[0.2em] opacity-60 hover:opacity-100"
+            className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.2em] transition hover:opacity-100"
+            style={{ color: 'var(--lp-muted)' }}
           >
             ← Retour
           </Link>
         </div>
 
-        <h1 className="mb-3 font-display text-5xl leading-[0.95]">Réglages.</h1>
-        <p className="mb-12 font-editorial text-lg italic opacity-70">
+        <h1 className="mb-3 font-[var(--font-lp-display)] text-5xl font-bold leading-[0.95] tracking-[-0.03em]">
+          Réglages.
+        </h1>
+        <p
+          className="mb-12 text-lg leading-relaxed"
+          style={{ color: 'var(--lp-muted)' }}
+        >
           Le lien que tes Drops envoient, et la palette qui les habille.
         </p>
 
         {saved === '1' && (
-          <div className="animate-fade-in mb-8 rounded-sm border border-olive bg-olive/10 px-4 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-olive">
+          <div
+            className="animate-fade-in mb-8 rounded-xl border px-4 py-3 font-[var(--font-mono)] text-[11px] uppercase tracking-[0.2em]"
+            style={{
+              borderColor: 'var(--lp-accent)',
+              background: 'oklch(82% 0.15 196 / 0.08)',
+              color: 'var(--lp-accent)',
+            }}
+          >
             Enregistré.
           </div>
         )}
@@ -115,7 +128,8 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           <section className="space-y-2">
             <label
               htmlFor="ctaUrl"
-              className="block font-mono text-[11px] uppercase tracking-[0.2em] opacity-70"
+              className="block font-[var(--font-mono)] text-[11px] uppercase tracking-[0.2em]"
+              style={{ color: 'var(--lp-muted)' }}
             >
               URL du bouton CTA par défaut
             </label>
@@ -126,30 +140,51 @@ export default async function SettingsPage({ searchParams }: PageProps) {
               inputMode="url"
               defaultValue={user.ctaUrl ?? ''}
               placeholder="https://ton-site.fr/contact"
-              className="w-full rounded-sm border border-ink/20 bg-transparent p-3 font-body text-base placeholder:opacity-40 focus:border-ink focus:outline-none"
+              className="w-full rounded-xl border p-3 text-base outline-none transition placeholder:opacity-40 focus:border-[var(--lp-accent)]"
+              style={{
+                background: 'var(--lp-panel)',
+                borderColor: 'var(--lp-line)',
+                color: 'var(--lp-text)',
+              }}
             />
-            <p className="font-mono text-[10px] uppercase tracking-[0.15em] opacity-50">
-              Pré-rempli sur le formulaire de création. Tu peux toujours l&apos;ajuster
-              pour un Drop particulier. Vide = aucun bouton sur tes Drops.
+            <p
+              className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.15em]"
+              style={{ color: 'var(--lp-faint)' }}
+            >
+              Pré-rempli sur le formulaire de création. Tu peux toujours
+              l&apos;ajuster pour un Drop particulier. Vide = aucun bouton sur
+              tes Drops.
             </p>
           </section>
 
           {/* ─── Brand palette ──────────────────────────────────────────── */}
-          <section className="space-y-6 border-t border-ink/15 pt-12">
+          <section
+            className="space-y-6 border-t pt-12"
+            style={{ borderColor: 'var(--lp-line)' }}
+          >
             <div>
-              <h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] opacity-70">
+              <h2
+                className="mb-3 font-[var(--font-mono)] text-[11px] uppercase tracking-[0.2em]"
+                style={{ color: 'var(--lp-muted)' }}
+              >
                 Palette de marque
               </h2>
-              <p className="font-editorial text-lg italic leading-relaxed opacity-80">
-                Pilote l&apos;identité visuelle complète (fond, texte, accent) de tous
-                tes Drops, indistinctement du sujet. Le rendu reste cohérent
-                d&apos;un Drop à l&apos;autre.
+              <p
+                className="text-lg leading-relaxed"
+                style={{ color: 'var(--lp-muted)' }}
+              >
+                Pilote l&apos;identité visuelle complète (fond, texte, accent)
+                de tous tes Drops, indistinctement du sujet. Le rendu reste
+                cohérent d&apos;un Drop à l&apos;autre.
               </p>
             </div>
 
             <BrandPalettePicker selected={resolvedKey} />
 
-            <p className="font-mono text-[10px] uppercase tracking-[0.15em] opacity-50">
+            <p
+              className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.15em]"
+              style={{ color: 'var(--lp-faint)' }}
+            >
               Pas de sélection = violet par défaut.
             </p>
           </section>

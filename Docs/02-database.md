@@ -283,27 +283,32 @@ export async function expireOldDrops() {
 
 ### Tracker un event
 
+Le hash visiteur est calculé par `hashVisitor()` dans `src/lib/privacy/visitor.ts` (cf. ce fichier pour la version canonique). Forme :
+
+```
+dailySalt = HMAC-SHA256( env.SALT_SEED, today_UTC_yyyy-mm-dd )
+visitorHash = SHA-256( ip | userAgent | dropId | dailySalt )
+```
+
+Le sel quotidien rend impossible la corrélation d'un visiteur d'un jour à l'autre (RGPD-friendly). `SALT_SEED` est une variable d'environnement obligatoire — pas de `HASH_SECRET`.
+
 ```ts
-import { createHash } from 'crypto'
+import { hashVisitor } from '@/lib/privacy/visitor'
 
 export async function trackEvent(input: {
   dropId: string
   kind: EventKind
-  ip: string
-  userAgent?: string
+  headers: Headers
   metadata?: Record<string, unknown>
 }) {
-  const today = new Date().toISOString().slice(0, 10)
-  const visitorHash = createHash('sha256')
-    .update(`${input.ip}|${today}|${process.env.HASH_SECRET}`)
-    .digest('hex')
+  const visitorHash = hashVisitor(input.headers, input.dropId)
 
   await prisma.dropEvent.create({
     data: {
       dropId: input.dropId,
       kind: input.kind,
       visitorHash,
-      userAgent: input.userAgent?.slice(0, 200),
+      userAgent: input.headers.get('user-agent')?.slice(0, 200),
       metadata: input.metadata ?? undefined,
     },
   })
@@ -328,51 +333,30 @@ export async function trackEvent(input: {
 
 ## 7. Seed pour la démo (`prisma/seed.ts`)
 
+Le seed est idempotent et fait trois choses en une seule commande (`pnpm db:seed`) :
+
+1. **`slug_words`** — peuple le pool combinatoire (150 adjectifs + 150 noms + 40 couleurs ≈ 900 000 slugs possibles).
+2. **3 users démo** — `plombier@demo.fr`, `coach@demo.fr`, `resto@demo.fr` (avec `business`, `trade`, `ctaUrl` pré-remplis).
+3. **3 drops démo** — contenu `DropContent` hardcodé conforme au schema, slugs fixes (`demo-plombier-chaudiere-novembre`, `demo-coach-changement-boite`, `demo-resto-menu-semaine`), TTL = 90 jours, `modelUsed = SONNET`. Les images hero sont des URLs fal.ai pré-générées (cf. `scripts/seed-images.ts` lancé une fois localement, URLs hardcodées dans `seed.ts`).
+
+Tout est en `upsert` sur clé unique — re-runner le seed prolonge la TTL des 3 drops et ré-aligne leur contenu sur la source.
+
 ```ts
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, AiModel, SlugKind, TemplateType } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-const ADJECTIVES = ['lent','vif','calme','brut','clair','dense','fin','frais','net','ample','sobre','vibrant', /* … 150 */]
-const NOUNS = ['papillon','phare','atelier','sentier','horizon','rivage','colline','silex','glycine','ardoise','onyx', /* … 150 */]
-const COLORS = ['ocre','indigo','ardoise','mauve','ivoire','prune','sienne','olive','rouille','encre', /* … 40 */]
-
 async function main() {
-  // Slug words
-  for (const word of ADJECTIVES) {
-    await prisma.slugWord.upsert({ where: { word }, update: {}, create: { word, kind: 'ADJECTIVE' } })
-  }
-  for (const word of NOUNS) {
-    await prisma.slugWord.upsert({ where: { word }, update: {}, create: { word, kind: 'NOUN' } })
-  }
-  for (const word of COLORS) {
-    await prisma.slugWord.upsert({ where: { word }, update: {}, create: { word, kind: 'COLOR' } })
-  }
-
-  // 3 users démo
-  const plombier = await prisma.user.upsert({
-    where: { email: 'plombier@demo.fr' },
-    update: {},
-    create: { email: 'plombier@demo.fr', name: 'Marc Dubois', business: 'Plomberie Lyon Centre', trade: 'plombier' },
-  })
-  const coach = await prisma.user.upsert({
-    where: { email: 'coach@demo.fr' },
-    update: {},
-    create: { email: 'coach@demo.fr', name: 'Aïcha Martin', business: 'Cap Transition', trade: 'coach' },
-  })
-  const resto = await prisma.user.upsert({
-    where: { email: 'resto@demo.fr' },
-    update: {},
-    create: { email: 'resto@demo.fr', name: 'Théo Lehmann', business: 'Table d\'Adèle', trade: 'restaurateur' },
-  })
-
-  // Les 3 drops de démo sont générés par script séparé : `pnpm tsx scripts/seed-drops.ts`
-  // (parce qu'ils nécessitent des appels API réels à Claude + fal.ai)
-  console.log({ plombier, coach, resto })
+  await seedSlugWords()         // upsert sur word @unique
+  const users = await seedDemoUsers()  // upsert sur email @unique
+  await seedDemoDrops(users)    // upsert sur slug @unique, expiresAt = now + 90j
+  console.log('→ Re-runner ce seed est sûr.')
 }
 
 main().finally(() => prisma.$disconnect())
 ```
+
+Voir `prisma/seed.ts` pour le contenu hardcodé exact des 3 drops (sections, interactions, CTAs).
 
 ---
 

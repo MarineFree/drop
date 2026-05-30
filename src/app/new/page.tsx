@@ -24,23 +24,42 @@ export default async function NewDropPage() {
   if (!user.business || !user.trade) redirect('/onboarding')
 
   return (
-    <div className="min-h-screen bg-cream-grain font-body text-ink antialiased">
-      <header className="flex items-center justify-between px-6 py-4 font-mono text-[11px] uppercase tracking-[0.15em]">
-        <span className="opacity-70">Drop · création</span>
-        <Link
-          href="/dashboard"
-          className="opacity-70 transition hover:opacity-100"
-        >
-          ← Dashboard
-        </Link>
+    <div className="lp-root min-h-screen antialiased">
+      <header
+        className="border-b"
+        style={{ borderColor: 'var(--lp-line)' }}
+      >
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-6 px-6 py-4 font-[var(--font-mono)] text-[11px] uppercase tracking-[0.15em]">
+          <Link
+            href="/"
+            className="flex items-center gap-3 font-[var(--font-lp-display)] text-xl font-bold normal-case tracking-[-0.02em]"
+            style={{ letterSpacing: 'normal' }}
+          >
+            <span aria-hidden className="lp-drop-mark" />
+            Drop.
+          </Link>
+          <Link
+            href="/dashboard"
+            className="transition hover:opacity-100"
+            style={{ color: 'var(--lp-muted)' }}
+          >
+            ← Dashboard
+          </Link>
+        </div>
       </header>
 
       <main className="mx-auto max-w-2xl px-6 pb-32 pt-12">
         <GenerateClient defaultCtaUrl={user.ctaUrl} />
       </main>
 
-      <footer className="border-t border-current/10 px-6 py-8">
-        <p className="text-center font-mono text-[10px] uppercase tracking-[0.2em] opacity-50">
+      <footer
+        className="border-t px-6 py-8"
+        style={{ borderColor: 'var(--lp-line)' }}
+      >
+        <p
+          className="text-center font-[var(--font-mono)] text-[10px] uppercase tracking-[0.2em]"
+          style={{ color: 'var(--lp-faint)' }}
+        >
           Une phrase, un mini-site. Sept jours en ligne, puis ça disparaît.
         </p>
       </footer>
