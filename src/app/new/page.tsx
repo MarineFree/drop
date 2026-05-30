@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { GenerateClient } from '@/components/creator/GenerateClient'
 import { requireUser } from '@/lib/auth-server'
@@ -24,8 +25,14 @@ export default async function NewDropPage() {
 
   return (
     <div className="min-h-screen bg-cream-grain font-body text-ink antialiased">
-      <header className="flex items-center justify-between px-6 py-4 font-mono text-[11px] uppercase tracking-[0.15em] opacity-70">
-        <span>Drop · création</span>
+      <header className="flex items-center justify-between px-6 py-4 font-mono text-[11px] uppercase tracking-[0.15em]">
+        <span className="opacity-70">Drop · création</span>
+        <Link
+          href="/dashboard"
+          className="opacity-70 transition hover:opacity-100"
+        >
+          ← Dashboard
+        </Link>
       </header>
 
       <main className="mx-auto max-w-2xl px-6 pb-32 pt-12">
