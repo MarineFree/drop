@@ -24,46 +24,42 @@ Le piège classique du multi-template : tous les templates finissent par se ress
 
 ## 2. Setup des fonts (`src/app/fonts.ts`)
 
+**Sept fonts** au total, en deux familles d'usage :
+
+- **Cinq fonts éditoriales** consommées par les templates publics `/d/[slug]`, le dashboard et l'auth : Instrument Serif, Fraunces, Newsreader, JetBrains Mono, Geist.
+- **Deux fonts landing-only** réservées à la page d'accueil `/` : Space Grotesk + Hanken Grotesk. **Volontairement séparées** pour ne pas fuir sur le dashboard ou les drops publics, qui ont leur propre identité éditoriale (cream/serif).
+
 ```ts
-import { Instrument_Serif, Fraunces, Newsreader, JetBrains_Mono, Geist } from 'next/font/google'
+import {
+  Instrument_Serif, Fraunces, Newsreader, JetBrains_Mono, Geist,
+  Space_Grotesk, Hanken_Grotesk,
+} from 'next/font/google'
 
+// — Cinq fonts éditoriales (templates publics, dashboard, auth) —
 export const instrumentSerif = Instrument_Serif({
-  subsets: ['latin'],
-  weight: ['400'],
-  style: ['normal', 'italic'],
-  variable: '--font-display',
-  display: 'swap',
+  subsets: ['latin'], weight: ['400'], style: ['normal', 'italic'],
+  variable: '--font-display', display: 'swap',
 })
+export const fraunces      = Fraunces({       subsets: ['latin'], variable: '--font-display-alt', display: 'swap' })
+export const newsreader    = Newsreader({     subsets: ['latin'], variable: '--font-editorial',   display: 'swap' })
+export const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono',        display: 'swap' })
+export const geist         = Geist({          subsets: ['latin'], variable: '--font-body',        display: 'swap' })
 
-export const fraunces = Fraunces({
-  subsets: ['latin'],
-  variable: '--font-display-alt',
-  display: 'swap',
-})
-
-export const newsreader = Newsreader({
-  subsets: ['latin'],
-  variable: '--font-editorial',
-  display: 'swap',
-})
-
-export const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  display: 'swap',
-})
-
-export const geist = Geist({
-  subsets: ['latin'],
-  variable: '--font-body',
-  display: 'swap',
-})
+// — Deux fonts landing-only (page `/` uniquement) —
+export const spaceGrotesk  = Space_Grotesk({  subsets: ['latin'], weight: ['400','500','600','700'], variable: '--font-lp-display', display: 'swap' })
+export const hankenGrotesk = Hanken_Grotesk({ subsets: ['latin'], weight: ['400','500','600','700'], variable: '--font-lp-body',    display: 'swap' })
 ```
 
-Dans `app/layout.tsx`, applique toutes les variables :
+Dans `src/app/layout.tsx`, les 7 variables sont appliquées au `<html>` :
 
 ```tsx
-<html lang="fr" className={`${instrumentSerif.variable} ${fraunces.variable} ${newsreader.variable} ${jetbrainsMono.variable} ${geist.variable}`}>
+const fontClassNames = [
+  instrumentSerif.variable, fraunces.variable, newsreader.variable,
+  jetbrainsMono.variable, geist.variable,
+  spaceGrotesk.variable, hankenGrotesk.variable,
+].join(' ')
+
+return <html lang="fr" className={fontClassNames}><body className="font-body">{children}</body></html>
 ```
 
 ---

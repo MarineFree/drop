@@ -137,7 +137,7 @@ Claude doit **toujours** renvoyer un objet conforme à `DropContentSchema` (`src
 
 - **Toujours générer en streaming côté serveur** quand l'utilisateur regarde — pas de loading spinner pendant 60s, sinon la perception de réactivité s'effondre.
 - **Toujours valider avec Zod** la sortie de Claude avant insertion DB. Si parse échoue, retry une fois avec un message d'erreur explicite injecté dans le prompt.
-- **Toujours générer l'image en parallèle du texte**, pas après. Promise.all obligatoire.
+- **Image strictement séquentielle après Claude** dans `/api/generate` — `generateImage()` consomme `content.image_prompt` retourné par le tool_use. Pas de Promise.all. Paralléliser exigerait de prédire l'image_prompt en amont, ~3 s gagnés sur 60-90 s : pas le bon trade-off.
 - **Les templates ne doivent jamais fetch eux-mêmes** — ils reçoivent toute la data en props depuis la page serveur.
 - **Pas de migrations Prisma pendant le hackathon** — utiliser `db:push`. On fera propre après si le projet survit.
 - **Le slug doit être human-readable** : `lent-papillon-mauve`, pas un UUID. Slugs garantis uniques via la table `SlugWord`.

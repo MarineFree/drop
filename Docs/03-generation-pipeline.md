@@ -6,35 +6,44 @@ Le flow complet : input patron → mini-site live, avec streaming pour soigner l
 
 ## 1. Vue d'ensemble
 
+**Important — Whisper vit dans une route séparée.** La transcription audio se fait côté `/new` AVANT le submit : le client poste l'audio à `POST /api/transcribe` → Whisper → string, qui remplit le textarea (éditable). `POST /api/generate` ne reçoit donc QUE du texte (`rawInput`). Cf. CLAUDE.md §architecture, et la route `src/app/api/transcribe/route.ts` pour l'implémentation Whisper.
+
 ```
+┌─────────────┐    POST /api/transcribe   ┌──────────────────────┐
+│   /new      │ ───────────────────────▶ │   OpenAI Whisper     │
+│  (audio)    │ ◄─────── texte ──────────│   (séquentiel, ~2-4s)│
+└─────────────┘                          └──────────────────────┘
+       │
+       │ (textarea rempli, patron peut éditer, puis submit)
+       ▼
 ┌─────────────┐    POST /api/generate    ┌──────────────────────┐
 │   Client    │ ───────────────────────▶ │   Node Route         │
 │  (browser)  │                          │   (streaming SSE)    │
 └─────────────┘                          └──────────────────────┘
        ▲                                          │
-       │                                          ├─► Whisper (si voice) — séquentiel
+       │                                          ├─► Étape 1 — Claude tool_use
+       │                                          │   (retry Zod + fallback Sonnet)
+       │   stream events (SSE)                    │
+       │ ◄────────────────────────────────        ├─► Étape 2 — fal.ai Flux Schnell
+       │                                          │   ⚠ SÉQUENTIEL après Claude :
+       │                                          │   utilise content.image_prompt
+       │                                          │   (si photo uploadée → skip fal.ai)
        │                                          │
-       │                                          ├─► Claude tool_use
-       │   stream events (SSE)                    │   (retry Zod + fallback Sonnet)
-       │ ◄────────────────────────────────        │
-       │                                          ├─► fal.ai Flux Schnell
-       │                                          │   (séquentiel, dépend de image_prompt)
-       │                                          │
-       │                                          ├─► Validate (Zod)
-       │                                          ├─► Insert DB
+       │                                          ├─► Étape 3 — createDrop (Zod + slug + DB)
        │                                          └─► Final event: { slug }
        │
        ▼
    Redirect /d/{slug}
 ```
 
-Note : Whisper et Claude s'exécutent **en séquence** (Whisper d'abord pour produire le texte, puis Claude). fal.ai est aussi séquentiel — il dépend du `image_prompt` retourné par Claude.
+**Pourquoi pas de Promise.all** : `generateImage()` consomme `content.image_prompt` retourné par Claude. La parallélisation exigerait de prédire le prompt image avant l'appel Claude — complexité significative pour gagner ~3 s sur un total de 60-90 s. Pas le bon trade-off.
 
-**Temps cible total** : 60-90 secondes. Décomposition :
-- Whisper (si voice) : 2-4s
-- Claude tool_use : 30-50s (le gros morceau)
-- fal.ai en parallèle : 3-5s (caché par Claude)
-- DB + slug + redirect : <1s
+**Temps cible total `/api/generate`** : 35-55 s. Décomposition :
+- Claude tool_use : 30-50 s (gros morceau)
+- fal.ai Flux Schnell : 3-5 s (après Claude)
+- DB + slug + SSE final : <1 s
+
+Whisper, quand utilisé, ajoute 2-4 s **côté `/new` avant le submit** — pas dans `/api/generate`.
 
 ---
 
@@ -63,93 +72,89 @@ Avantages : streaming réel, plus exigeant techniquement. Inconvénients : parsi
 
 ## 3. La route serveur (Mode A) — `src/app/api/generate/route.ts`
 
+Body JSON (pas formData — l'audio a été transcrit en amont côté `/api/transcribe`) :
+
+```ts
+const GenerateRequestSchema = z.object({
+  rawInput: z.string().min(10).max(2000),
+  imageUrl: z.string().url().optional(),   // photo uploadée → skip fal.ai
+  ctaUrl: z.string().url().optional(),     // override User.ctaUrl
+})
+```
+
+Structure de la route :
+
 ```ts
 import { NextRequest } from 'next/server'
+import { z } from 'zod'
+import { InputKind } from '@prisma/client'
 import { generateDrop } from '@/lib/ai/generate'
 import { generateImage } from '@/lib/ai/image'
-import { transcribeAudio } from '@/lib/ai/whisper'
+import { getCurrentUser } from '@/lib/auth-server'
 import { createDrop } from '@/lib/db/drops'
-import { auth } from '@/lib/auth'
+import { getGenerateRateLimit } from '@/lib/ratelimit'
+import { parseClientIp } from '@/lib/privacy/visitor'
 
 export const runtime = 'nodejs'    // pas edge : Prisma a besoin de Node
-export const maxDuration = 120     // 2 minutes max
+export const maxDuration = 120     // 2 min — couvre Opus dans le pire cas
 
 export async function POST(req: NextRequest) {
+  // 0. Auth (défense en profondeur, CVE-2025-29927)
   const user = await getCurrentUser()
-  if (!user) return new Response('Unauthorized', { status: 401 })
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const formData = await req.formData()
-  const text = formData.get('text') as string | null
-  const audio = formData.get('audio') as File | null
+  // 1. Rate limit per-IP
+  const ip = parseClientIp(req.headers)
+  const { success } = await getGenerateRateLimit().limit(ip)
+  if (!success) return Response.json({ error: 'Rate limit exceeded' }, { status: 429 })
 
-  if (!text && !audio) {
-    return new Response('text or audio required', { status: 400 })
-  }
+  // 2. Parse + validate body
+  const parsed = GenerateRequestSchema.safeParse(await req.json())
+  if (!parsed.success) return Response.json({ error: 'Validation failed' }, { status: 400 })
+  const body = parsed.data
 
-  // Stream SSE
-  const encoder = new TextEncoder()
-  const stream = new ReadableStream({
+  // 3. SSE — Claude → image → DB (strictement séquentiel)
+  const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (event: string, data: unknown) => {
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
-      }
-
+      let currentStep: 'analyzing' | 'imaging' | 'saving' = 'analyzing'
       try {
-        // 1. Transcription si voice
-        let rawInput = text ?? ''
-        if (audio) {
-          send('status', { step: 'transcribing', label: 'Transcription du vocal…' })
-          rawInput = await transcribeAudio(audio)
-          send('status', { step: 'transcribed', label: 'Vocal transcrit.', text: rawInput })
-        }
+        // Étape 1 — Claude (retry Zod + fallback Sonnet en interne dans generateDrop)
+        currentStep = 'analyzing'
+        const { content, modelUsed } = await generateDrop(body.rawInput)
 
-        // 2. Génération texte (modèle primaire avec fallback Sonnet une fois — pas de retry interne)
-        send('status', { step: 'analyzing', label: 'Analyse du sujet et choix du template…' })
+        // Étape 2 — image. Si photo uploadée fournie → skip fal.ai.
+        currentStep = 'imaging'
+        const imageUrl = body.imageUrl ?? await generateImage(content.image_prompt)
 
-        const { content, modelUsed } = await generateDrop(rawInput)
-        send('status', { step: 'content_ready', label: 'Contenu généré.', modelUsed })
-
-        // 3. Image (séquentiel : on a besoin de l'image_prompt retourné par Claude)
-        send('status', { step: 'imaging', label: 'Génération de l\'image…' })
-        const imageUrl = await generateImage(content.image_prompt)
-        send('status', { step: 'imaged', label: 'Image prête.' })
-
-        // 4. DB — modelUsed persisté pour pouvoir mesurer la fréquence du fallback en analytics.
-        send('status', { step: 'saving', label: 'Publication du Drop…' })
+        // Étape 3 — persistance + slug unique
+        currentStep = 'saving'
         const drop = await createDrop({
           userId: user.id,
-          rawInput,
-          inputKind: audio ? 'VOICE' : 'TEXT',
+          rawInput: body.rawInput,
+          inputKind: InputKind.TEXT,   // Whisper transcrit en amont → toujours TEXT ici
           content,
           imageUrl,
           modelUsed,
+          ctaUrl: body.ctaUrl ?? null,
         })
 
         send('done', { slug: drop.slug, url: `/d/${drop.slug}` })
       } catch (err) {
-        // generateDrop a déjà tenté primary + fallback Sonnet en interne.
-        // Si on arrive ici, les deux ont échoué → 500 propagé via SSE.
-        console.error(err)
-        send('error', { message: err instanceof Error ? err.message : 'Unknown error' })
+        send('error', { step: currentStep, message: err instanceof Error ? err.message : 'Unknown' })
       } finally {
         controller.close()
       }
     },
   })
 
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
-    },
-  })
+  return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', /* … */ } })
 }
 ```
 
-**Note importante sur la parallélisation** : ici, image démarre APRÈS texte parce qu'on a besoin du `image_prompt` retourné par Claude. **C'est volontaire**, pas une erreur. Pour vraiment paralléliser, il faudrait prédire le prompt image AVANT la génération texte (faisable mais ajoute de la complexité pour gagner 3 secondes).
-
-> **Note (2026-05-14)** : `generateDropWithRetry` retiré lors de la refonte du fallback IA (cf. `tasks/lessons.md`). API publique unique : `generateDrop(userInput): Promise<{ content, modelUsed }>`. Le fallback Sonnet est désormais interne à `generateDrop` — pas de retry à orchestrer côté route.
+**Notes importantes** :
+- `inputKind` est **toujours `TEXT`** depuis cette route. La transcription Whisper se fait à `/api/transcribe` AVANT que `/new` n'appelle `/api/generate`. La distinction TEXT vs VOICE doit donc être propagée par le client (champ `inputKind` dans le body) si tu veux la tracer en DB — pour l'instant le code force TEXT.
+- L'image démarre **APRÈS** texte parce que `generateImage()` consomme `content.image_prompt` retourné par Claude. **Pas de Promise.all** — c'est volontaire et documenté (cf. §1 « Pourquoi pas de Promise.all »).
+- `generateDrop()` a son fallback Sonnet en interne — pas de retry à orchestrer côté route (cf. Docs/01 §6).
 
 ---
 
