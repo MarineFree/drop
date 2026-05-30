@@ -51,11 +51,13 @@ COPY . .
 ENV NODE_OPTIONS=--max-old-space-size=2048
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Variables MOCK pour le build. Aucune n'est lue au build par notre code (toutes
-# les routes lisent process.env au runtime), mais Next inline les valeurs
-# `NEXT_PUBLIC_*` au build → on doit avoir au minimum une URL valide qui sera
-# remplacée par le runtime via env Dokploy.
-ARG NEXT_PUBLIC_BASE_URL=https://drop.local
+# Next inline les `NEXT_PUBLIC_*` au build → la valeur ici finit baked dans le
+# JS client. Si Dokploy ne passe pas de build arg explicite, on tombe sur la
+# valeur prod par défaut (getdrop.cloud). Le côté client lit en fait
+# `window.location.origin` au runtime (cf. src/lib/auth-client.ts), donc cette
+# valeur de fallback n'est plus critique — mais on garde une URL valide pour
+# éviter les bugs annexes (Chrome bloque `.local`, casse les fetch).
+ARG NEXT_PUBLIC_BASE_URL=https://getdrop.cloud
 ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 
 RUN pnpm build
