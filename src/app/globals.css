@@ -18,6 +18,9 @@
   --font-editorial: var(--font-editorial);
   --font-mono: var(--font-mono);
   --font-body: var(--font-body);
+  /* Landing page only — Space Grotesk + Hanken Grotesk */
+  --font-lp-display: var(--font-lp-display);
+  --font-lp-body: var(--font-lp-body);
 }
 
 @layer base {
@@ -52,4 +55,122 @@
 
 .animate-fade-in {
   animation: fade-in 220ms ease-out both;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Landing page — Direction B (dark + cyan + Space Grotesk)
+   Tout est PRÉFIXÉ `lp-` et SCOPÉ sous `.lp-root` pour ne JAMAIS leaker
+   sur le reste de l'app (dashboard, drops publics, signin, etc.).
+   Cf. Claude design/Drop - Direction B.html
+   ───────────────────────────────────────────────────────────────────────── */
+
+.lp-root {
+  --lp-bg: oklch(16.5% 0.024 264);
+  --lp-bg2: oklch(20.5% 0.03 264);
+  --lp-panel: oklch(22.5% 0.032 264);
+  --lp-text: oklch(96% 0.01 240);
+  --lp-muted: oklch(72% 0.025 250);
+  --lp-faint: oklch(56% 0.03 255);
+  --lp-line: oklch(30% 0.035 264);
+  --lp-accent: oklch(82% 0.15 196);
+  --lp-accent-2: oklch(78% 0.14 168);
+  --lp-glow: oklch(82% 0.15 196 / 0.35);
+
+  background: var(--lp-bg);
+  color: var(--lp-text);
+  font-family: var(--font-lp-body), system-ui, sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glow backdrop fixe — donne la profondeur cyan/violet derrière le contenu */
+.lp-root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(700px 460px at 78% -6%, oklch(82% 0.15 196 / 0.14), transparent 70%),
+    radial-gradient(560px 420px at 8% 18%, oklch(70% 0.14 285 / 0.12), transparent 70%);
+}
+.lp-root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Pulse de l'eyebrow dot (live indicator) */
+@keyframes lp-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.lp-pulse { animation: lp-pulse 2s infinite; }
+
+/* Spinner de la demo */
+@keyframes lp-spin {
+  to { transform: rotate(360deg); }
+}
+.lp-spinner {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid var(--lp-line);
+  border-top-color: var(--lp-accent);
+  animation: lp-spin 0.7s linear infinite;
+}
+
+/* Scroll reveal — class portée par <ScrollReveal> au mount, basculée par IO */
+.lp-rv {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.75s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.lp-rv.lp-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Sticky header — borderline qui apparaît quand on a scrollé */
+.lp-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: color-mix(in oklab, var(--lp-bg) 72%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+.lp-header.lp-scrolled {
+  border-color: var(--lp-line);
+}
+
+/* Forme du logo drop — losange arrondi cyan glowy */
+.lp-drop-mark {
+  width: 18px;
+  height: 18px;
+  background: var(--lp-accent);
+  border-radius: 62% 62% 62% 8% / 62% 62% 78% 8%;
+  transform: rotate(45deg);
+  box-shadow: 0 0 18px var(--lp-glow);
+  flex-shrink: 0;
+}
+
+/* Hover-lift sur cards format — la couleur per-card vient de --c inline */
+.lp-fcard {
+  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+.lp-fcard:hover {
+  transform: translateY(-5px);
+  border-color: var(--c, var(--lp-accent));
+  box-shadow: 0 24px 50px -30px var(--c, var(--lp-accent));
+}
+.lp-fcard .lp-fbeam {
+  background: var(--c, var(--lp-accent));
+}
+.lp-fcard .lp-fsq {
+  background: var(--c, var(--lp-accent));
+  box-shadow: 0 0 10px var(--c, var(--lp-accent));
 }

@@ -2,9 +2,11 @@ import type { Metadata } from 'next'
 import {
   fraunces,
   geist,
+  hankenGrotesk,
   instrumentSerif,
   jetbrainsMono,
   newsreader,
+  spaceGrotesk,
 } from './fonts'
 import './globals.css'
 
@@ -20,6 +22,8 @@ const fontClassNames = [
   newsreader.variable,
   jetbrainsMono.variable,
   geist.variable,
+  spaceGrotesk.variable,
+  hankenGrotesk.variable,
 ].join(' ')
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

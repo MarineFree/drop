@@ -45,5 +45,8 @@ prisma/*.db-journal
 .cursorignore
 .claude/settings.local.json
 
+# Design working folder (maquettes / HTML reference / probe screenshots)
+Claude design/
+
 # OS
 Thumbs.db

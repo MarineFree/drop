@@ -4,6 +4,8 @@ import {
   Newsreader,
   JetBrains_Mono,
   Geist,
+  Space_Grotesk,
+  Hanken_Grotesk,
 } from 'next/font/google'
 
 export const instrumentSerif = Instrument_Serif({
@@ -35,5 +37,22 @@ export const jetbrainsMono = JetBrains_Mono({
 export const geist = Geist({
   subsets: ['latin'],
   variable: '--font-body',
+  display: 'swap',
+})
+
+// Polices RÉSERVÉES à la landing /. Pas utilisées ailleurs dans l'app pour
+// éviter qu'elles fuient sur le dashboard / les drops publics (qui ont leur
+// propre identité éditoriale cream/serif).
+export const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-lp-display',
+  display: 'swap',
+})
+
+export const hankenGrotesk = Hanken_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-lp-body',
   display: 'swap',
 })
