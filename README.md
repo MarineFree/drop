@@ -14,7 +14,7 @@ Un patron de TPE/PME tape une phrase. En 90 secondes, Drop génère un mini-site
 - **Auth** : Better Auth — magic link via Resend, sessions DB
 - **IA texte** : Anthropic Claude — Sonnet 4.6 par défaut (Opus 4.7 opt-in via `DROP_GENERATION_MODEL`), tool-use structuré + retry Zod + fallback modèle
 - **IA image** : fal.ai (Flux Schnell, ~2s) OU upload patron (filesystem volume + abstraction `src/lib/storage/`)
-- **IA voice** : OpenAI Whisper (`whisper-1`, langue `fr`) — entrée vocale optionnelle sur `/new`
+- **IA voice** : fal.ai Whisper (`fal-ai/whisper`, langue `fr`, même clé `FAL_KEY` que l'image) — entrée vocale optionnelle sur `/new`
 - **Rate limit** : Upstash Redis sliding windows (préfixes distincts par route)
 - **Tracking** : table `drop_events` custom + hash visiteur quotidien (SHA-256 + HMAC daily salt → RGPD-anonyme)
 - **Hébergement** : VPS Hostinger + Dokploy v0.29.5 (Traefik + Let's Encrypt + volume Docker persistant)

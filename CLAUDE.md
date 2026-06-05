@@ -14,7 +14,7 @@ Hackathon **Académie IApreneurs × Hostinger** — thème 02 (création de cont
 - **Auth** : Better Auth (magic link via Resend, sessions DB)
 - **IA texte** : Anthropic SDK, **Sonnet 4.6 par défaut** (`DROP_GENERATION_MODEL=sonnet|opus`), retry Zod + fallback modèle
 - **IA image** : fal.ai (Flux Schnell, ~2s) OU upload photo patron via volume Docker `/data/uploads` (abstraction `src/lib/storage/`, prête à basculer S3)
-- **IA voice → text** : OpenAI Whisper (`whisper-1`, langue `fr`)
+- **IA voice → text** : fal.ai Whisper (`fal-ai/whisper`, langue `fr`) — réutilise la même clé `FAL_KEY` que l'image
 - **Rate limit** : Upstash Redis (sliding window, préfixes distincts `drop:generate` / `drop:transcribe` / `drop:events`)
 - **Tracking** : table `drop_events` custom, hash visiteur quotidien (SHA-256 + HMAC daily salt — RGPD-anonyme). VIEW + CTA_CLICK trackés serveur, SCROLL_50/COMPLETE + INTERACTION_START/DONE via `sendBeacon` → `POST /api/events`
 - **Brand palette** : `User.brandColor` (8 palettes prédéfinies dans `src/lib/brand-palettes.ts`) injecte 5 CSS vars `--bg` `--text` `--accent` `--accent-fg` `--soft` sur Shell — **override total** de `meta.theme` IA (mort code mais conservé dans le Zod schema pour compat)
@@ -66,7 +66,7 @@ src/
 │   │   ├── prompts.ts        # System prompts (FR strict)
 │   │   ├── schema.ts         # Zod DropContent
 │   │   ├── image.ts          # Wrapper fal.ai Flux Schnell
-│   │   └── whisper.ts        # Wrapper OpenAI Whisper
+│   │   └── whisper.ts        # Wrapper fal.ai Whisper (fal-ai/whisper)
 │   ├── auth.ts               # Better Auth config
 │   ├── auth-server.ts        # getCurrentUser / requireUser
 │   ├── db.ts                 # Prisma singleton
@@ -157,7 +157,6 @@ DATABASE_URL=postgresql://...          # Supabase pooler (port 5432, PAS de ?pgb
 ANTHROPIC_API_KEY=sk-ant-...
 DROP_GENERATION_MODEL=sonnet           # sonnet (défaut) | opus
 FAL_KEY=...
-OPENAI_API_KEY=...                     # Whisper transcription
 CRON_SECRET=...                        # bearer pour /api/cron/expire
 SALT_SEED=...                          # random long — base du daily salt visiteur
 UPSTASH_REDIS_REST_URL=...

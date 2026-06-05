@@ -14,8 +14,7 @@ Cette doc est la **checklist humaine** pour passer Drop de zéro à prod sur un 
 - **Domaine** géré chez Hostinger (ex: `getdrop.cloud`).
 - **Comptes API** créés et clés en main :
   - Anthropic (`sk-ant-…`)
-  - fal.ai (`FAL_KEY`)
-  - OpenAI (Whisper — `sk-…`)
+  - fal.ai (`FAL_KEY`) — sert à la fois pour l'image (Flux Schnell) et la transcription (fal-ai/whisper)
   - Resend (`re_…`) + domaine email vérifié si l'on sort du sandbox
   - Upstash Redis (URL REST + token)
 
@@ -105,7 +104,7 @@ DROP_GENERATION_MODEL=sonnet
 FAL_KEY=...
 
 # OpenAI (Whisper)
-OPENAI_API_KEY=sk-...
+# OpenAI retiré : Whisper utilise désormais fal.ai (même FAL_KEY que l'image)
 
 # Resend (magic link auth)
 RESEND_API_KEY=re_...

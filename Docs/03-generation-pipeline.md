@@ -10,7 +10,7 @@ Le flow complet : input patron → mini-site live, avec streaming pour soigner l
 
 ```
 ┌─────────────┐    POST /api/transcribe   ┌──────────────────────┐
-│   /new      │ ───────────────────────▶ │   OpenAI Whisper     │
+│   /new      │ ───────────────────────▶ │   fal.ai Whisper     │
 │  (audio)    │ ◄─────── texte ──────────│   (séquentiel, ~2-4s)│
 └─────────────┘                          └──────────────────────┘
        │
