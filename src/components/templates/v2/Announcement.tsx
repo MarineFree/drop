@@ -173,21 +173,6 @@ export function Announcement({ drop }: AnnouncementProps) {
           </section>
         )}
 
-        {/* ===== FINAL CTA ===== */}
-        <section className="border-t border-[var(--line)] py-[70px] text-center">
-          <h2
-            className="block w-full text-[clamp(40px,7vw,96px)] uppercase leading-[0.9]"
-            style={{ fontFamily: 'var(--font-tpl-announce), system-ui, sans-serif' }}
-          >
-            {content.cta.label}
-          </h2>
-          <p className="mt-4 text-[var(--ink-soft)]">
-            Réservation en deux clics · place réservée immédiatement
-          </p>
-          <div className="mt-[30px] inline-flex">
-            <CtaButton slug={drop.slug} ctaUrl={drop.ctaUrl} label={content.cta.label} />
-          </div>
-        </section>
       </div>
 
       <DropFooter

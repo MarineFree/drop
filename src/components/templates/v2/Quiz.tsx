@@ -98,6 +98,93 @@ export function Quiz({ drop }: QuizProps) {
           </div>
         </section>
 
+        {/* ===== CONTEXTE — sections du DropContent rendues en cartes sombres ===== */}
+        {content.sections.length > 0 && (
+          <div className="mt-12 flex flex-col gap-4">
+            {content.sections.map((s, i) => {
+              if (s.kind === 'text') {
+                return (
+                  <div
+                    key={i}
+                    className="rounded-[15px] border border-[var(--line)] bg-[var(--card)] px-6 py-7"
+                  >
+                    <h3
+                      className="text-[20px] font-bold leading-tight text-[var(--ink)]"
+                      style={{ fontFamily: 'var(--font-tpl-quiz), system-ui, sans-serif' }}
+                    >
+                      {s.heading}
+                    </h3>
+                    <p className="mt-[10px] text-[17px] leading-[1.55] text-[var(--ink-soft)]">
+                      {s.body}
+                    </p>
+                  </div>
+                )
+              }
+              if (s.kind === 'stat') {
+                return (
+                  <div
+                    key={i}
+                    className="rounded-[15px] border border-[var(--line)] bg-[var(--card)] px-6 py-7 text-center"
+                  >
+                    <div
+                      className="text-[48px] font-extrabold leading-none text-[var(--accent)]"
+                      style={{ fontFamily: 'var(--font-tpl-quiz), system-ui, sans-serif' }}
+                    >
+                      {s.value}
+                    </div>
+                    <p className="mt-3 text-[15px] text-[var(--ink-soft)]">{s.label}</p>
+                  </div>
+                )
+              }
+              if (s.kind === 'checklist') {
+                return (
+                  <div
+                    key={i}
+                    className="rounded-[15px] border border-[var(--line)] bg-[var(--card)] px-6 py-7"
+                  >
+                    <ul className="flex flex-col gap-3 text-[16px] text-[var(--ink-soft)]">
+                      {s.items.map((item, j) => (
+                        <li key={j} className="flex gap-3">
+                          <span className="font-mono text-[13px] text-[var(--accent)]">
+                            {String(j + 1).padStart(2, '0')}
+                          </span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              }
+              // comparison
+              return (
+                <div
+                  key={i}
+                  className="grid grid-cols-1 gap-3 md:grid-cols-2"
+                >
+                  <div className="rounded-[15px] border border-[var(--line)] bg-[var(--bg-2)] px-6 py-6">
+                    <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                      Avant
+                    </div>
+                    <p className="mt-2 text-[16px] text-[var(--ink-soft)]">{s.before}</p>
+                  </div>
+                  <div
+                    className="rounded-[15px] border px-6 py-6"
+                    style={{
+                      borderColor: 'color-mix(in oklab, var(--accent) 45%, var(--line))',
+                      background: 'color-mix(in oklab, var(--accent) 12%, var(--card))',
+                    }}
+                  >
+                    <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--accent)]">
+                      Après
+                    </div>
+                    <p className="mt-2 text-[16px] text-[var(--ink)]">{s.after}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
         {/* ===== INTERACTION ===== */}
         {content.interaction.kind === 'quiz' && (
           <QuizMachine quiz={content.interaction} dropSlug={drop.slug} />

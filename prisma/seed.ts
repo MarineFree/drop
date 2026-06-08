@@ -326,6 +326,8 @@ interface DropSeedSpec {
   templateType: TemplateType
   interactionType: InteractionType | null
   imageUrl: string
+  /** URL cible du bouton CTA (sinon CtaButton ne rend rien — bug visible v2 templates) */
+  ctaUrl: string
 }
 
 async function upsertSeedDrop(spec: DropSeedSpec): Promise<void> {
@@ -354,6 +356,7 @@ async function upsertSeedDrop(spec: DropSeedSpec): Promise<void> {
       sectionCount,
       expiresAt,
       isActive: true,
+      ctaUrl: spec.ctaUrl,
     },
     create: {
       slug: spec.slug,
@@ -369,6 +372,7 @@ async function upsertSeedDrop(spec: DropSeedSpec): Promise<void> {
       modelUsed: AiModel.SONNET,
       expiresAt,
       isActive: true,
+      ctaUrl: spec.ctaUrl,
     },
   })
 }
@@ -384,6 +388,7 @@ async function seedDemoDrops(userIds: Record<DemoUserKey, string>): Promise<void
       templateType: TemplateType.HOW_TO,
       interactionType: null,
       imageUrl: SEED_IMAGES.plombier,
+      ctaUrl: DEMO_USERS.plombier.ctaUrl,
     },
     {
       userId: userIds.coach,
@@ -394,6 +399,7 @@ async function seedDemoDrops(userIds: Record<DemoUserKey, string>): Promise<void
       templateType: TemplateType.QUIZ,
       interactionType: InteractionType.POLL,
       imageUrl: SEED_IMAGES.coach,
+      ctaUrl: DEMO_USERS.coach.ctaUrl,
     },
     {
       userId: userIds.resto,
@@ -404,6 +410,7 @@ async function seedDemoDrops(userIds: Record<DemoUserKey, string>): Promise<void
       templateType: TemplateType.ANNOUNCEMENT,
       interactionType: null,
       imageUrl: SEED_IMAGES.resto,
+      ctaUrl: DEMO_USERS.resto.ctaUrl,
     },
   ]
 
