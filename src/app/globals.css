@@ -58,6 +58,62 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   Templates publics v2 — chrome partagée (DropChrome + DropFooter)
+   Cf. design_handoff_drop_templates/README.md
+   Chaque template v2 wrap son contenu dans <div className="drop-tpl"> et
+   définit ses propres tokens OKLCH (--bg/--paper, --ink, --line, --accent…).
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Losange Drop (pas un SVG) — couleur = --accent du template parent */
+.drop-mark {
+  width: 13px;
+  height: 13px;
+  background: var(--accent);
+  border-radius: 62% 62% 62% 8% / 62% 62% 78% 8%;
+  transform: rotate(45deg);
+  flex: none;
+}
+
+/* Pulse de la pastille d'expiration */
+@keyframes drop-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 60%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.drop-pulse {
+  animation: drop-pulse 2.4s infinite;
+}
+
+/* Backdrop du header sticky — fond translucide qui suit le bg du template.
+   Les templates clairs définissent --paper, les sombres définissent --bg.
+   On lit les deux via une fallback chain (var(--bg, var(--paper, white))). */
+.drop-chrome-bg {
+  background: color-mix(
+    in oklab,
+    var(--bg, var(--paper, white)) 82%,
+    transparent
+  );
+}
+
+/* Largeur max du wrapper chrome (sera surchargée par chaque template via
+   un style inline si besoin — défaut raisonnable 1080px). */
+.drop-chrome-in {
+  max-width: var(--tpl-maxw, 1080px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-pulse {
+    animation: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    Landing page — Direction B (dark + cyan + Space Grotesk)
    Tout est PRÉFIXÉ `lp-` et SCOPÉ sous `.lp-root` pour ne JAMAIS leaker
    sur le reste de l'app (dashboard, drops publics, signin, etc.).

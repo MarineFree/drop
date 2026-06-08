@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drop · Galerie de templates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: oklch(16.5% 0.024 264);
+    --bg-2: oklch(20.5% 0.03 264);
+    --card: oklch(22.5% 0.032 264);
+    --text: oklch(96% 0.01 240);
+    --muted: oklch(72% 0.025 250);
+    --faint: oklch(58% 0.03 255);
+    --line: oklch(30% 0.035 264);
+    --accent: oklch(82% 0.15 196);
+    --disp: 'Space Grotesk', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--text); font-family:var(--disp); -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(720px 480px at 84% -8%, oklch(82% 0.15 196 / .12), transparent 66%),
+      radial-gradient(620px 460px at 6% 14%, oklch(70% 0.14 285 / .10), transparent 66%); }
+  .mono{ font-family:var(--mono); }
+  a{ color:inherit; text-decoration:none; }
+
+  .wrap{ max-width:1280px; margin:0 auto; padding:0 36px; }
+
+  header{ padding:64px 0 30px; }
+  .brand{ display:flex; align-items:center; gap:12px; font-family:var(--mono); font-size:14px; letter-spacing:.06em; color:var(--muted); }
+  .brand b{ color:var(--text); font-weight:700; }
+  .dmark{ width:15px; height:15px; background:var(--accent); border-radius:62% 62% 62% 8% / 62% 62% 78% 8%; transform:rotate(45deg); box-shadow:0 0 16px oklch(82% 0.15 196 / .4); }
+  h1{ font-family:var(--disp); font-weight:700; font-size:clamp(38px,5.4vw,68px); line-height:1.02; letter-spacing:-.03em; margin-top:26px; max-width:18ch; }
+  .sub{ font-size:20px; color:var(--muted); max-width:54ch; margin-top:20px; line-height:1.5; }
+  .legend{ display:flex; flex-wrap:wrap; gap:18px 28px; margin-top:30px; font-family:var(--mono); font-size:12.5px; color:var(--faint); }
+  .legend span{ display:inline-flex; align-items:center; gap:9px; }
+  .legend i{ width:11px; height:11px; border-radius:3px; }
+
+  .grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:30px; padding:34px 0 90px; }
+  @media (max-width:880px){ .grid{ grid-template-columns:1fr; } }
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:20px; overflow:hidden; transition:transform .18s, border-color .2s, box-shadow .25s; display:flex; flex-direction:column; }
+  .card:hover{ transform:translateY(-4px); border-color:color-mix(in oklab, var(--c) 55%, var(--line)); box-shadow:0 30px 60px -34px var(--c); }
+  .shot{ position:relative; width:100%; overflow:hidden; border-bottom:1px solid var(--line); background:var(--bg-2); }
+  .shot iframe{ position:absolute; top:0; left:0; width:1280px; height:840px; border:0; transform-origin:top left; pointer-events:none; }
+  .shot .scrim{ position:absolute; inset:0; z-index:2; }
+  .num{ position:absolute; top:14px; left:16px; z-index:3; font-family:var(--mono); font-size:12px; letter-spacing:.08em; color:var(--text); background:oklch(16% 0.02 264 / .7); backdrop-filter:blur(6px); padding:6px 11px; border-radius:8px; }
+  .moodtag{ position:absolute; top:14px; right:16px; z-index:3; font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text); background:oklch(16% 0.02 264 / .7); backdrop-filter:blur(6px); padding:6px 11px; border-radius:8px; }
+
+  .meta{ padding:24px 26px 26px; }
+  .toprow{ display:flex; align-items:center; gap:11px; }
+  .toprow i{ width:13px; height:13px; border-radius:4px; background:var(--c); box-shadow:0 0 14px var(--c); flex:none; }
+  .fname{ font-family:var(--disp); font-weight:700; font-size:24px; letter-spacing:-.01em; }
+  .pill{ margin-left:auto; font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--c); border:1px solid color-mix(in oklab,var(--c) 40%, var(--line)); padding:5px 10px; border-radius:999px; }
+  .desc{ color:var(--muted); margin-top:14px; font-size:16px; line-height:1.5; }
+  .feats{ display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+  .feat{ font-family:var(--mono); font-size:11.5px; color:var(--faint); background:var(--bg-2); border:1px solid var(--line); padding:6px 11px; border-radius:8px; }
+  .open{ display:inline-flex; align-items:center; gap:9px; margin-top:22px; font-family:var(--disp); font-weight:600; font-size:15px; color:var(--bg); background:var(--c); padding:12px 20px; border-radius:11px; transition:gap .18s, transform .15s; }
+  .card:hover .open{ gap:13px; }
+
+  footer{ border-top:1px solid var(--line); }
+  .foot-in{ max-width:1280px; margin:0 auto; padding:34px 36px 60px; display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; justify-content:space-between; }
+  .foot-in .l{ display:flex; align-items:center; gap:11px; font-family:var(--mono); font-size:12.5px; color:var(--muted); }
+  .foot-in .r{ font-family:var(--mono); font-size:12px; color:var(--faint); }
+</style>
+</head>
+<body>
+
+  <div class="wrap">
+    <header>
+      <div class="brand"><span class="dmark"></span> <span><b>Drop</b> · bibliothèque de formats</span></div>
+      <h1>Cinq formats. Cinq voix.</h1>
+      <p class="sub">Chaque idée mérite le bon costume. Voici les cinq templates que Drop choisit automatiquement selon ton intention — la couleur d'accent, elle, se règle dans ton dashboard.</p>
+      <div class="legend">
+        <span><i style="background:oklch(82% 0.14 196)"></i> Guide — cyan</span>
+        <span><i style="background:oklch(72% 0.16 32)"></i> Manifeste — corail</span>
+        <span><i style="background:oklch(58% 0.12 158)"></i> Étude de cas — vert</span>
+        <span><i style="background:oklch(72% 0.16 305)"></i> Quiz — violet</span>
+        <span><i style="background:oklch(80% 0.15 75)"></i> Annonce — ambre</span>
+      </div>
+    </header>
+
+    <div class="grid">
+
+      <a class="card" href="templates/Guide pratique.html" style="--c:oklch(82% 0.14 196)">
+        <div class="shot"><span class="num">format_01</span><span class="moodtag">Clair</span><span class="scrim"></span><iframe src="templates/Guide pratique.html" loading="lazy" scrolling="no" tabindex="-1" aria-hidden="true"></iframe></div>
+        <div class="meta">
+          <div class="toprow"><i></i><span class="fname">Guide pratique</span><span class="pill">GUIDE</span></div>
+          <p class="desc">Explique, étape par étape. Pour les modes d'emploi et les « comment faire ».</p>
+          <div class="feats"><span class="feat">Sommaire collant</span><span class="feat">Étapes numérotées</span><span class="feat">Encadrés « à retenir »</span></div>
+          <span class="open">Ouvrir le template →</span>
+        </div>
+      </a>
+
+      <a class="card" href="templates/Manifeste.html" style="--c:oklch(72% 0.16 32)">
+        <div class="shot"><span class="num">format_02</span><span class="moodtag">Sombre</span><span class="scrim"></span><iframe src="templates/Manifeste.html" loading="lazy" scrolling="no" tabindex="-1" aria-hidden="true"></iframe></div>
+        <div class="meta">
+          <div class="toprow"><i></i><span class="fname">Manifeste</span><span class="pill">MANIFESTE</span></div>
+          <p class="desc">Prends position. Grand titre, ton tranché, une stat plein cadre. Pour marquer les esprits.</p>
+          <div class="feats"><span class="feat">Bodoni géant</span><span class="feat">Arguments I·II·III</span><span class="feat">Chiffre plein cadre</span></div>
+          <span class="open">Ouvrir le template →</span>
+        </div>
+      </a>
+
+      <a class="card" href="templates/Étude de cas.html" style="--c:oklch(58% 0.12 158)">
+        <div class="shot"><span class="num">format_03</span><span class="moodtag">Clair</span><span class="scrim"></span><iframe src="templates/Étude de cas.html" loading="lazy" scrolling="no" tabindex="-1" aria-hidden="true"></iframe></div>
+        <div class="meta">
+          <div class="toprow"><i></i><span class="fname">Étude de cas</span><span class="pill">ÉTUDE DE CAS</span></div>
+          <p class="desc">Montre la preuve. Avant / après, chiffres, résultat. Pour rassurer un prospect.</p>
+          <div class="feats"><span class="feat">KPI tabulaires</span><span class="feat">Avant / après</span><span class="feat">Timeline</span></div>
+          <span class="open">Ouvrir le template →</span>
+        </div>
+      </a>
+
+      <a class="card" href="templates/Quiz.html" style="--c:oklch(72% 0.16 305)">
+        <div class="shot"><span class="num">format_04</span><span class="moodtag">Sombre</span><span class="scrim"></span><iframe src="templates/Quiz.html" loading="lazy" scrolling="no" tabindex="-1" aria-hidden="true"></iframe></div>
+        <div class="meta">
+          <div class="toprow"><i></i><span class="fname">Quiz</span><span class="pill">QUIZ</span></div>
+          <p class="desc">Fais participer. Un vrai quiz à bonnes réponses, feedback et score. Se partage tout seul.</p>
+          <div class="feats"><span class="feat">Questions interactives</span><span class="feat">Score & feedback</span><span class="feat">Résultat à partager</span></div>
+          <span class="open">Ouvrir le template →</span>
+        </div>
+      </a>
+
+      <a class="card" href="templates/Annonce.html" style="--c:oklch(80% 0.15 75)">
+        <div class="shot"><span class="num">format_05</span><span class="moodtag">Poster</span><span class="scrim"></span><iframe src="templates/Annonce.html" loading="lazy" scrolling="no" tabindex="-1" aria-hidden="true"></iframe></div>
+        <div class="meta">
+          <div class="toprow"><i></i><span class="fname">Annonce</span><span class="pill">ANNONCE</span></div>
+          <p class="desc">Crée l'événement. Date, compte à rebours intégré, places limitées, bouton d'action.</p>
+          <div class="feats"><span class="feat">Compte à rebours live</span><span class="feat">Programme</span><span class="feat">Rareté des places</span></div>
+          <span class="open">Ouvrir le template →</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+  <footer>
+    <div class="foot-in">
+      <div class="l"><span class="dmark" style="width:13px;height:13px"></span> <span>Drop · cinq formats, sept jours, puis plus rien</span></div>
+      <div class="r">Chaque template porte la chrome Drop : expiration vivante en haut, auto-destruction en pied.</div>
+    </div>
+  </footer>
+
+<script>
+  function fit(){
+    document.querySelectorAll('.shot').forEach(shot=>{
+      const ifr = shot.querySelector('iframe');
+      const s = shot.clientWidth / 1280;
+      ifr.style.transform = 'scale('+s+')';
+      shot.style.height = (840 * s) + 'px';
+    });
+  }
+  window.addEventListener('resize', fit);
+  window.addEventListener('load', fit);
+  fit();
+</script>
+</body>
+</html>

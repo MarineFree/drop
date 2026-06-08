@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drop · Annonce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --accent: oklch(80% 0.15 75);          /* ANNONCE = ambre par défaut */
+    --accent-2: oklch(72% 0.16 45);
+    --ink: oklch(96% 0.02 80);
+    --ink-soft: oklch(80% 0.03 75);
+    --muted: oklch(62% 0.04 70);
+    --bg: oklch(18% 0.02 60);
+    --bg-2: oklch(22% 0.028 60);
+    --card: oklch(24% 0.03 60);
+    --line: oklch(34% 0.035 60);
+    --disp: 'Anton', system-ui, sans-serif;
+    --sans: 'Hanken Grotesk', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --maxw: 1140px;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  body{ background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:18px; line-height:1.55; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    background-image:radial-gradient(800px 500px at 92% -10%, color-mix(in oklab,var(--accent) 20%, transparent), transparent 66%); }
+  .mono{ font-family:var(--mono); }
+
+  /* CHROME */
+  .chrome{ position:sticky; top:0; z-index:50; background:color-mix(in oklab,var(--bg) 80%, transparent); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); }
+  .chrome-in{ max-width:var(--maxw); margin:0 auto; padding:14px 36px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+  .brand{ display:flex; align-items:center; gap:11px; font-family:var(--mono); font-size:13px; color:var(--ink-soft); }
+  .brand b{ color:var(--ink); font-weight:700; }
+  .dmark{ width:13px; height:13px; background:var(--accent); border-radius:62% 62% 62% 8% / 62% 62% 78% 8%; transform:rotate(45deg); flex:none; box-shadow:0 0 16px color-mix(in oklab,var(--accent) 55%, transparent); }
+  .expire{ display:flex; align-items:center; gap:9px; font-family:var(--mono); font-size:12px; color:var(--ink-soft); border:1px solid var(--line); border-radius:999px; padding:7px 13px; }
+  .expire .pulse{ width:7px; height:7px; border-radius:50%; background:var(--accent); animation:pulse 2.4s infinite; }
+  @keyframes pulse{ 0%{ box-shadow:0 0 0 0 color-mix(in oklab,var(--accent) 60%, transparent);} 70%{ box-shadow:0 0 0 7px transparent;} 100%{ box-shadow:0 0 0 0 transparent;} }
+
+  .wrap{ max-width:var(--maxw); margin:0 auto; padding:0 36px; }
+
+  /* POSTER HERO */
+  .imgph{ position:relative; aspect-ratio:21/9; border:1px solid var(--line); border-radius:16px; overflow:hidden; margin:34px 0 0;
+    display:flex; align-items:center; justify-content:center;
+    background:repeating-linear-gradient(135deg, var(--bg-2) 0 15px, var(--card) 15px 30px); }
+  .imgph::before{ content:""; position:absolute; inset:0; background:radial-gradient(56% 56% at 50% 42%, oklch(80% 0.15 75 / .18), transparent 72%); }
+  .ph-c{ position:relative; display:flex; flex-direction:column; align-items:center; gap:11px; }
+  .ph-c svg{ width:46px; height:46px; color:var(--accent); }
+  .ph-c span{ font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .poster{ padding:60px 0 50px; }
+  .tagrow{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .tag{ font-family:var(--mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+  .tag.dot::before{ content:"•"; margin-right:14px; color:var(--muted); }
+  .ptitle{ font-family:var(--disp); font-weight:400; font-size:clamp(64px,13vw,184px); line-height:.86; letter-spacing:.005em; text-transform:uppercase; margin-top:22px; width:100%; }
+  .ptitle .am{ color:var(--accent); }
+  .psub{ font-size:22px; color:var(--ink-soft); max-width:46ch; margin-top:24px; }
+
+  /* DATE BAND */
+  .band{ display:flex; flex-wrap:wrap; gap:14px 40px; align-items:baseline; margin-top:38px; padding:26px 0; border-top:2px solid var(--line); border-bottom:2px solid var(--line); }
+  .band .dt{ font-family:var(--disp); font-size:clamp(30px,4.4vw,52px); text-transform:uppercase; letter-spacing:.01em; }
+  .band .dt .am{ color:var(--accent); }
+  .band .where{ font-family:var(--mono); font-size:14px; letter-spacing:.04em; color:var(--ink-soft); }
+
+  /* COUNTDOWN */
+  .count{ margin-top:40px; }
+  .count .cl{ font-family:var(--mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .clock{ display:flex; gap:14px; margin-top:16px; flex-wrap:wrap; }
+  .unit{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px 8px; min-width:120px; flex:1; text-align:center; }
+  .unit .v{ font-family:var(--disp); font-size:clamp(44px,6vw,72px); line-height:.9; color:var(--accent); font-variant-numeric:tabular-nums; }
+  .unit .u{ font-family:var(--mono); font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-top:10px; }
+
+  /* CTA + scarcity */
+  .ctarow{ display:flex; flex-wrap:wrap; align-items:center; gap:18px 24px; margin-top:36px; }
+  .btn{ font-family:var(--sans); font-weight:700; font-size:18px; text-decoration:none; border-radius:13px; padding:18px 32px; display:inline-flex; align-items:center; gap:10px; cursor:pointer; border:none; transition:transform .15s, box-shadow .2s; }
+  .btn.solid{ background:linear-gradient(100deg,var(--accent),var(--accent-2)); color:oklch(22% 0.05 60); box-shadow:0 14px 40px -16px var(--accent); }
+  .btn.solid:hover{ transform:translateY(-2px); box-shadow:0 20px 50px -16px var(--accent); }
+  .scarcity{ display:flex; align-items:center; gap:11px; font-family:var(--mono); font-size:13px; color:var(--ink-soft); }
+  .scarcity .bar{ width:120px; height:7px; border-radius:4px; background:var(--bg-2); overflow:hidden; border:1px solid var(--line); }
+  .scarcity .bar i{ display:block; height:100%; width:78%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); }
+
+  /* PROGRAMME */
+  section.blk{ padding:64px 0; border-top:1px solid var(--line); }
+  .blk h2{ font-family:var(--disp); font-weight:400; text-transform:uppercase; font-size:clamp(30px,4.4vw,52px); letter-spacing:.01em; line-height:.95; width:100%; }
+  .prog{ display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:18px; overflow:hidden; margin-top:30px; }
+  .pi{ background:var(--bg); padding:28px 28px; }
+  .pi .t{ font-family:var(--mono); font-size:13px; color:var(--accent); letter-spacing:.04em; }
+  .pi h3{ font-family:var(--sans); font-weight:700; font-size:23px; margin-top:10px; }
+  .pi p{ color:var(--ink-soft); margin-top:8px; font-size:16px; }
+
+  /* INFOS PRATIQUES */
+  .infos{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-top:30px; }
+  .info{ border:1px solid var(--line); border-radius:14px; padding:22px 20px; background:var(--card); }
+  .info .k{ font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  .info .v{ font-family:var(--sans); font-weight:700; font-size:19px; margin-top:8px; }
+
+  /* FINAL CTA */
+  .final{ text-align:center; padding:70px 0; border-top:1px solid var(--line); }
+  .final h2{ font-family:var(--disp); text-transform:uppercase; font-size:clamp(40px,7vw,96px); line-height:.9; }
+  .final h2 .am{ color:var(--accent); }
+  .final p{ color:var(--ink-soft); margin-top:16px; }
+  .final .btn{ margin-top:30px; }
+
+  footer{ border-top:1px solid var(--line); }
+  .foot-in{ max-width:var(--maxw); margin:0 auto; padding:38px 36px 54px; display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; }
+  .foot-mark{ display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:12px; color:var(--ink-soft); }
+  .foot-expire{ font-family:var(--mono); font-size:12px; color:var(--muted); }
+  .foot-expire b{ color:var(--ink); font-weight:500; }
+
+  @media (max-width:760px){ .prog{ grid-template-columns:1fr; } .infos{ grid-template-columns:1fr 1fr; } .unit{ min-width:72px; } }
+</style>
+</head>
+<body>
+
+  <header class="chrome">
+    <div class="chrome-in">
+      <div class="brand"><span class="dmark"></span> <span><b>Marine Carité</b> · freelance augmenté IA</span></div>
+      <div class="expire"><span class="pulse"></span> Expire dans <span data-expire>6j 21h</span></div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section class="poster">
+      <div class="tagrow"><span class="tag">Événement</span><span class="tag dot">Atelier en présentiel</span><span class="tag dot">Places limitées</span></div>
+      <h1 class="ptitle">Atelier<br><span class="am">Tisanes</span> & plantes</h1>
+      <p class="psub">Une soirée pour apprendre à composer ses propres mélanges — détente, digestion, sommeil. Repartez avec vos tisanes et un carnet de recettes.</p>
+      <figure class="imgph"><div class="ph-c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="4" width="18" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M3 16l5-4 4 3 5-5 4 3"/></svg><span>Image · générée par fal.ai</span></div></figure>
+
+      <div class="band">
+        <div class="dt"><span class="am" data-ev-weekday>Samedi</span> <span data-ev-date>14 juin</span></div>
+        <div class="dt">18<span class="am">:</span>30</div>
+        <div class="where">Atelier Verveine · 12 rue des Lilas, Lyon&nbsp;2</div>
+      </div>
+
+      <div class="count">
+        <div class="cl">L'atelier commence dans</div>
+        <div class="clock">
+          <div class="unit"><div class="v" data-d>08</div><div class="u">jours</div></div>
+          <div class="unit"><div class="v" data-h>00</div><div class="u">heures</div></div>
+          <div class="unit"><div class="v" data-m>00</div><div class="u">minutes</div></div>
+          <div class="unit"><div class="v" data-s>00</div><div class="u">secondes</div></div>
+        </div>
+      </div>
+
+      <div class="ctarow">
+        <a class="btn solid" href="#">Réserver ma place →</a>
+        <div class="scarcity"><div class="bar"><i></i></div> <span>Plus que <b style="color:var(--accent)">3 places</b> sur 14</span></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <section class="blk">
+      <h2>Au programme</h2>
+      <div class="prog">
+        <div class="pi"><div class="t">18h30 — Accueil</div><h3>Thé de bienvenue</h3><p>On se présente autour d'une infusion, on parle de vos besoins.</p></div>
+        <div class="pi"><div class="t">19h00 — Atelier</div><h3>Les 8 plantes essentielles</h3><p>Reconnaître, sentir, comprendre les vertus de chaque plante.</p></div>
+        <div class="pi"><div class="t">19h45 — Pratique</div><h3>Composez vos mélanges</h3><p>Trois recettes : détente, digestion, sommeil. Vous repartez avec.</p></div>
+        <div class="pi"><div class="t">20h30 — Échange</div><h3>Questions & dégustation</h3><p>On goûte, on ajuste, on partage ses astuces.</p></div>
+      </div>
+    </section>
+
+    <section class="blk" style="padding-top:30px;">
+      <h2 style="font-size:clamp(24px,3.4vw,38px)">Infos pratiques</h2>
+      <div class="infos">
+        <div class="info"><div class="k">Durée</div><div class="v">2 heures</div></div>
+        <div class="info"><div class="k">Tarif</div><div class="v">38 € · matériel inclus</div></div>
+        <div class="info"><div class="k">Places</div><div class="v">14 maximum</div></div>
+        <div class="info"><div class="k">Niveau</div><div class="v">Débutant·e bienvenu·e</div></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <section class="final">
+      <h2>Ce soir-là,<br>vous saurez <span class="am">faire</span>.</h2>
+      <p>Réservation en deux clics. Annulation gratuite jusqu'à 48 h avant.</p>
+      <a class="btn solid" href="#">Je réserve ma place →</a>
+    </section>
+  </div>
+
+  <footer>
+    <div class="foot-in">
+      <div class="foot-mark"><span class="dmark"></span> Créé avec <b>Drop</b> · éphémère par nature</div>
+      <div class="foot-expire">Ce site s'auto-détruit le <b data-expire-date>13 juin 2026</b></div>
+    </div>
+  </footer>
+
+<script>
+(function(){
+  // event target: ~8 jours, samedi soir 18h30 (dynamique → toujours futur)
+  const ev = new Date(Date.now() + 8*24*3600*1000);
+  ev.setHours(18,30,0,0);
+  const pad = n=>String(n).padStart(2,'0');
+  function setText(sel,v){ document.querySelectorAll(sel).forEach(e=>e.textContent=v); }
+  function tickEvent(){
+    const now=new Date(); let diff=Math.max(0, ev-now);
+    const d=Math.floor(diff/86400000); diff-=d*86400000;
+    const h=Math.floor(diff/3600000); diff-=h*3600000;
+    const m=Math.floor(diff/60000); diff-=m*60000;
+    const s=Math.floor(diff/1000);
+    setText('[data-d]',pad(d)); setText('[data-h]',pad(h)); setText('[data-m]',pad(m)); setText('[data-s]',pad(s));
+  }
+  const wd = ev.toLocaleDateString('fr-FR',{weekday:'long'});
+  setText('[data-ev-weekday]', wd.charAt(0).toUpperCase()+wd.slice(1));
+  setText('[data-ev-date]', ev.toLocaleDateString('fr-FR',{day:'numeric',month:'long'}));
+  tickEvent(); setInterval(tickEvent,1000);
+
+  // expiry chrome
+  const target=new Date(Date.now()+(6*24+21)*3600*1000);
+  function tickExp(){ const now=new Date(); let diff=Math.max(0,target-now);
+    const d=Math.floor(diff/86400000); diff-=d*86400000; const h=Math.floor(diff/3600000); diff-=h*3600000; const m=Math.floor(diff/60000);
+    setText('[data-expire]',`${d}j ${pad(h)}h ${pad(m)}m`);
+    setText('[data-expire-date]', target.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}));
+  } tickExp(); setInterval(tickExp,20000);
+})();
+</script>
+</body>
+</html>

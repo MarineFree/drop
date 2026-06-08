@@ -5,12 +5,13 @@ import { EventKind, type TemplateType } from '@prisma/client'
 import { getActiveDropBySlug, trackEvent, type PublicDrop } from '@/lib/db/drops'
 import { hashVisitor } from '@/lib/privacy/visitor'
 import { ScrollTracker } from '@/components/d/ScrollTracker'
-import { Announcement } from '@/components/templates/Announcement'
 import { CaseStudy } from '@/components/templates/CaseStudy'
-import { HowTo } from '@/components/templates/HowTo'
 import { Manifesto } from '@/components/templates/Manifesto'
 import { MinimalRender } from '@/components/templates/MinimalRender'
-import { Quiz } from '@/components/templates/Quiz'
+// Templates v2 (design_handoff_drop_templates) — seeds démo + nouveaux drops
+import { Announcement } from '@/components/templates/v2/Announcement'
+import { HowTo } from '@/components/templates/v2/HowTo'
+import { Quiz } from '@/components/templates/v2/Quiz'
 
 // Pas de cache statique : on lit les headers pour le tracking visiteur, donc
 // chaque hit doit toucher le serveur. ISR sera réintroduit plus tard si besoin,

@@ -1,13 +1,20 @@
 import {
-  Instrument_Serif,
+  Anton,
+  Archivo,
+  Bodoni_Moda,
+  Bricolage_Grotesque,
   Fraunces,
-  Newsreader,
-  JetBrains_Mono,
   Geist,
-  Space_Grotesk,
   Hanken_Grotesk,
+  Instrument_Serif,
+  JetBrains_Mono,
+  Newsreader,
+  Schibsted_Grotesk,
+  Space_Grotesk,
+  Spectral,
 } from 'next/font/google'
 
+// ─── Anciennes polices éditoriales (utilisées par Shell / templates legacy / dashboard) ───
 export const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
   weight: ['400'],
@@ -40,9 +47,7 @@ export const geist = Geist({
   display: 'swap',
 })
 
-// Polices RÉSERVÉES à la landing /. Pas utilisées ailleurs dans l'app pour
-// éviter qu'elles fuient sur le dashboard / les drops publics (qui ont leur
-// propre identité éditoriale cream/serif).
+// ─── Landing-only ───
 export const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
@@ -54,5 +59,55 @@ export const hankenGrotesk = Hanken_Grotesk({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-lp-body',
+  display: 'swap',
+})
+
+// ─── Templates publics v2 (5 personnalités distinctes — cf. design_handoff_drop_templates/) ───
+// Schibsted Grotesk : Guide pratique (display)
+export const schibstedGrotesk = Schibsted_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-tpl-guide',
+  display: 'swap',
+})
+
+// Bodoni Moda : Manifeste (display)
+export const bodoniModa = Bodoni_Moda({
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  variable: '--font-tpl-manifesto',
+  display: 'swap',
+})
+
+// Spectral : Étude de cas (display)
+export const spectral = Spectral({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-tpl-case',
+  display: 'swap',
+})
+
+// Archivo : Étude de cas (body sans-serif)
+export const archivo = Archivo({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-tpl-case-body',
+  display: 'swap',
+})
+
+// Bricolage Grotesque : Quiz (display + body)
+export const bricolageGrotesque = Bricolage_Grotesque({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-tpl-quiz',
+  display: 'swap',
+})
+
+// Anton : Annonce (display poster)
+export const anton = Anton({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-tpl-announce',
   display: 'swap',
 })
