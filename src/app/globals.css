@@ -21,6 +21,16 @@
   /* Landing page only — Space Grotesk + Hanken Grotesk */
   --font-lp-display: var(--font-lp-display);
   --font-lp-body: var(--font-lp-body);
+
+  /* Templates publics v2 — fallback vers les fonts déjà chargées
+     (cf. fonts.ts : les 6 fonts du handoff ne pouvaient pas être fetched
+     depuis le VPS Hostinger pendant le build Docker, timeouts ETIMEDOUT). */
+  --font-tpl-guide: var(--font-display);          /* Instrument Serif (cf. Schibsted Grotesk) */
+  --font-tpl-manifesto: var(--font-display-alt);  /* Fraunces (cf. Bodoni Moda) */
+  --font-tpl-case: var(--font-editorial);         /* Newsreader (cf. Spectral) */
+  --font-tpl-case-body: var(--font-body);         /* Geist (cf. Archivo) */
+  --font-tpl-quiz: var(--font-body);              /* Geist (cf. Bricolage Grotesque) */
+  --font-tpl-announce: var(--font-display-alt);   /* Fraunces (cf. Anton) */
 }
 
 @layer base {

@@ -1,20 +1,15 @@
 import {
-  Anton,
-  Archivo,
-  Bodoni_Moda,
-  Bricolage_Grotesque,
   Fraunces,
   Geist,
   Hanken_Grotesk,
   Instrument_Serif,
   JetBrains_Mono,
   Newsreader,
-  Schibsted_Grotesk,
   Space_Grotesk,
-  Spectral,
 } from 'next/font/google'
 
-// ─── Anciennes polices éditoriales (utilisées par Shell / templates legacy / dashboard) ───
+// ─── Anciennes polices éditoriales (Shell legacy, templates v2 via CSS vars de
+// substitution dans globals.css, dashboard, auth) ───
 export const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
   weight: ['400'],
@@ -62,52 +57,9 @@ export const hankenGrotesk = Hanken_Grotesk({
   display: 'swap',
 })
 
-// ─── Templates publics v2 (5 personnalités distinctes — cf. design_handoff_drop_templates/) ───
-// Schibsted Grotesk : Guide pratique (display)
-export const schibstedGrotesk = Schibsted_Grotesk({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-tpl-guide',
-  display: 'swap',
-})
-
-// Bodoni Moda : Manifeste (display)
-export const bodoniModa = Bodoni_Moda({
-  subsets: ['latin'],
-  style: ['normal', 'italic'],
-  variable: '--font-tpl-manifesto',
-  display: 'swap',
-})
-
-// Spectral : Étude de cas (display)
-export const spectral = Spectral({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-tpl-case',
-  display: 'swap',
-})
-
-// Archivo : Étude de cas (body sans-serif)
-export const archivo = Archivo({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-tpl-case-body',
-  display: 'swap',
-})
-
-// Bricolage Grotesque : Quiz (display + body)
-export const bricolageGrotesque = Bricolage_Grotesque({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-tpl-quiz',
-  display: 'swap',
-})
-
-// Anton : Annonce (display poster)
-export const anton = Anton({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-tpl-announce',
-  display: 'swap',
-})
+// ─── Templates publics v2 ───
+// Les 6 polices spécifiques du design handoff (Schibsted Grotesk, Bodoni Moda,
+// Spectral, Archivo, Bricolage Grotesque, Anton) ont été retirées : le VPS
+// Hostinger ne peut pas atteindre fonts.gstatic.com depuis le build Docker
+// (timeouts ETIMEDOUT systématiques). Les CSS vars --font-tpl-* sont définies
+// dans globals.css en fallback vers les fonts déjà chargées ci-dessus.

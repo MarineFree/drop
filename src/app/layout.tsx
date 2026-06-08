@@ -1,18 +1,12 @@
 import type { Metadata } from 'next'
 import {
-  anton,
-  archivo,
-  bodoniModa,
-  bricolageGrotesque,
   fraunces,
   geist,
   hankenGrotesk,
   instrumentSerif,
   jetbrainsMono,
   newsreader,
-  schibstedGrotesk,
   spaceGrotesk,
-  spectral,
 } from './fonts'
 import './globals.css'
 
@@ -23,7 +17,7 @@ export const metadata: Metadata = {
 }
 
 const fontClassNames = [
-  // Legacy + dashboard
+  // Editoriales (Shell legacy, templates v2 via fallback CSS vars, dashboard, auth)
   instrumentSerif.variable,
   fraunces.variable,
   newsreader.variable,
@@ -32,13 +26,6 @@ const fontClassNames = [
   // Landing-only
   spaceGrotesk.variable,
   hankenGrotesk.variable,
-  // Templates publics v2
-  schibstedGrotesk.variable,
-  bodoniModa.variable,
-  spectral.variable,
-  archivo.variable,
-  bricolageGrotesque.variable,
-  anton.variable,
 ].join(' ')
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
