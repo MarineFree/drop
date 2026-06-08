@@ -5,12 +5,12 @@ import { EventKind, type TemplateType } from '@prisma/client'
 import { getActiveDropBySlug, trackEvent, type PublicDrop } from '@/lib/db/drops'
 import { hashVisitor } from '@/lib/privacy/visitor'
 import { ScrollTracker } from '@/components/d/ScrollTracker'
-import { CaseStudy } from '@/components/templates/CaseStudy'
-import { Manifesto } from '@/components/templates/Manifesto'
 import { MinimalRender } from '@/components/templates/MinimalRender'
-// Templates v2 (design_handoff_drop_templates) — seeds démo + nouveaux drops
+// Templates v2 (design_handoff_drop_templates) — les 5 templates
 import { Announcement } from '@/components/templates/v2/Announcement'
+import { CaseStudy } from '@/components/templates/v2/CaseStudy'
 import { HowTo } from '@/components/templates/v2/HowTo'
+import { Manifesto } from '@/components/templates/v2/Manifesto'
 import { Quiz } from '@/components/templates/v2/Quiz'
 
 // Pas de cache statique : on lit les headers pour le tracking visiteur, donc
