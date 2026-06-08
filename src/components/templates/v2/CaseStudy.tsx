@@ -72,43 +72,6 @@ export function CaseStudy({ drop }: CaseStudyProps) {
           >
             {content.hook.subtitle}
           </p>
-
-          {/* Client bar : profil / durée / objectif */}
-          <div className="mt-[34px] flex flex-wrap gap-[28px] border-t border-[var(--line)] pt-6">
-            <div>
-              <div className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--muted)]">
-                Profil
-              </div>
-              <div
-                className="mt-1 text-[20px] font-semibold"
-                style={{ fontFamily: 'var(--font-tpl-case), Georgia, serif' }}
-              >
-                {drop.user.business ?? 'Anonyme'}
-              </div>
-            </div>
-            <div>
-              <div className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--muted)]">
-                Lecture
-              </div>
-              <div
-                className="mt-1 text-[20px] font-semibold"
-                style={{ fontFamily: 'var(--font-tpl-case), Georgia, serif' }}
-              >
-                {Math.max(1, Math.round(content.meta.estimated_read_time_sec / 60))} min
-              </div>
-            </div>
-            <div>
-              <div className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--muted)]">
-                Approche
-              </div>
-              <div
-                className="mt-1 text-[20px] font-semibold"
-                style={{ fontFamily: 'var(--font-tpl-case), Georgia, serif' }}
-              >
-                {content.meta.tone}
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* ===== IMAGE 21:9 ===== */}
