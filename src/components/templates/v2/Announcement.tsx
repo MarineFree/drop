@@ -84,10 +84,6 @@ export function Announcement({ drop }: AnnouncementProps) {
             </figure>
           )}
 
-          {/* CTA */}
-          <div className="mt-12 inline-flex">
-            <CtaButton slug={drop.slug} ctaUrl={drop.ctaUrl} label={content.cta.label} />
-          </div>
         </section>
 
         {/* ===== CONTENT (sections en bandeau infos) ===== */}
@@ -130,6 +126,11 @@ export function Announcement({ drop }: AnnouncementProps) {
             </div>
           </section>
         )}
+
+        {/* ===== CTA final ===== */}
+        <section className="border-t border-[var(--line)] py-16 text-center">
+          <CtaButton slug={drop.slug} ctaUrl={drop.ctaUrl} label={content.cta.label} />
+        </section>
 
       </div>
 
