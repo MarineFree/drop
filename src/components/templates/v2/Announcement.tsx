@@ -5,7 +5,6 @@ import type { DropContent } from '@/lib/ai/schema'
 import type { PublicDrop } from '@/lib/db/drops'
 import { CtaButton } from '../CtaButton'
 import { DropChrome, DropFooter } from './DropChrome'
-import { EventCountdown } from './EventCountdown'
 
 interface AnnouncementProps {
   drop: PublicDrop
@@ -29,27 +28,11 @@ const ANNOUNCE_TOKENS: CSSProperties = {
     'radial-gradient(800px 500px at 92% -10%, color-mix(in oklab,var(--accent) 20%, transparent), transparent 66%)',
 } as CSSProperties
 
-/**
- * Date cible de l'événement : J+8, 18h30. Statique côté serveur pour cohérence
- * SSR/CSR. Le contrat IA actuel n'a pas de champ `event_date`, donc on hardcode
- * comme le HTML hi-fi (Phase 2 : étendre le schema avec un champ optionnel).
- */
-function getEventTarget(): Date {
-  const d = new Date()
-  d.setDate(d.getDate() + 8)
-  d.setHours(18, 30, 0, 0)
-  return d
-}
-
 export function Announcement({ drop }: AnnouncementProps) {
   const content = drop.content as unknown as DropContent
   const accent = drop.user.brandColor
     ? getPalette(drop.user.brandColor).accent
     : 'oklch(80% 0.15 75)'
-
-  const eventTarget = getEventTarget()
-  const weekday = eventTarget.toLocaleDateString('fr-FR', { weekday: 'long' })
-  const dayMonth = eventTarget.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
 
   return (
     <div
@@ -101,33 +84,8 @@ export function Announcement({ drop }: AnnouncementProps) {
             </figure>
           )}
 
-          {/* Bande date */}
-          <div className="mt-[38px] flex flex-wrap items-baseline gap-x-10 gap-y-[14px] border-b-2 border-t-2 border-[var(--line)] py-[26px]">
-            <div
-              className="text-[clamp(30px,4.4vw,52px)] uppercase tracking-[0.01em]"
-              style={{ fontFamily: 'var(--font-tpl-announce), system-ui, sans-serif' }}
-            >
-              <span className="text-[var(--accent)]">
-                {weekday.charAt(0).toUpperCase() + weekday.slice(1)}
-              </span>{' '}
-              <span>{dayMonth}</span>
-            </div>
-            <div
-              className="text-[clamp(30px,4.4vw,52px)] uppercase"
-              style={{ fontFamily: 'var(--font-tpl-announce), system-ui, sans-serif' }}
-            >
-              18<span className="text-[var(--accent)]">:</span>30
-            </div>
-            <div className="font-mono text-[14px] tracking-[0.04em] text-[var(--ink-soft)]">
-              Lieu à confirmer · {drop.user.business ?? 'Drop'}
-            </div>
-          </div>
-
-          {/* Compte à rebours */}
-          <EventCountdown target={eventTarget} />
-
           {/* CTA */}
-          <div className="mt-9 inline-flex">
+          <div className="mt-12 inline-flex">
             <CtaButton slug={drop.slug} ctaUrl={drop.ctaUrl} label={content.cta.label} />
           </div>
         </section>
