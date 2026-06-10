@@ -23,9 +23,13 @@ interface StatusStep {
 }
 
 interface ErrorPayload {
+  /** Code spécifique : `CONTENT_REFUSED` = refus modèle (UX distincte, pas un bug). */
+  code?: string
   step?: string
   message: string
 }
+
+const REFUSED_CODE = 'CONTENT_REFUSED'
 
 // Doit matcher `GenerateRequestSchema` côté route (Zod : min(10).max(2000)).
 const MIN_LEN = 10
@@ -528,7 +532,42 @@ export function GenerateClient({ defaultCtaUrl }: GenerateClientProps) {
             </div>
           )}
 
-          {phase === 'error' && error && (
+          {phase === 'error' && error && error.code === REFUSED_CODE && (
+            // Refus de contenu : ton neutre, pas alarmant, PAS de "Réessayer"
+            // (le même input sera refusé à nouveau). On invite à reformuler.
+            <div className="animate-fade-in space-y-3 pt-4">
+              <p
+                className="font-[var(--font-mono)] text-[11px] uppercase tracking-[0.2em]"
+                style={{ color: 'var(--lp-muted)' }}
+              >
+                Sujet non transformable
+              </p>
+              <p className="text-base" style={{ color: 'var(--lp-text)' }}>
+                {error.message}
+              </p>
+              <p
+                className="text-sm"
+                style={{ color: 'var(--lp-muted)' }}
+              >
+                Reformule ton input pour proposer un autre sujet.
+              </p>
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="rounded-xl border px-6 py-2 font-[var(--font-mono)] text-xs uppercase tracking-[0.2em] transition hover:border-[var(--lp-accent)]"
+                style={{
+                  borderColor: 'var(--lp-line)',
+                  color: 'var(--lp-text)',
+                }}
+              >
+                Modifier mon input
+              </button>
+            </div>
+          )}
+
+          {phase === 'error' && error && error.code !== REFUSED_CODE && (
+            // Panne technique : message d'échec + step + bouton Réessayer (peut
+            // résoudre les pannes transitoires API / réseau).
             <div className="animate-fade-in space-y-3 pt-4">
               <p
                 className="font-[var(--font-mono)] text-sm uppercase tracking-wider"

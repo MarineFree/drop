@@ -8,6 +8,35 @@ const MAX_ATTEMPTS_PER_MODEL = 2 // 1 attempt + 1 retry max par modèle
 
 export type ModelTag = 'opus' | 'sonnet'
 
+/**
+ * Refus de contenu par le modèle (safety, contenu hors charte, etc.) — distinct
+ * d'une panne API ou d'un schema invalide.
+ *
+ * Détection (cf. `callAndValidate`) : `tool_choice` est forcé sur `generate_drop`,
+ * donc en mode nominal Claude répond avec un bloc `tool_use`. Si on reçoit
+ * `stop_reason: 'end_turn'` ET un bloc `text` ET PAS de `tool_use` → Claude a
+ * "fini son tour" sans utiliser le tool forcé, ce qui signe un refus.
+ *
+ * Conséquences :
+ *  - PAS de retry Zod (rien à valider).
+ *  - PAS de fallback modèle (Sonnet refusera pour la même raison).
+ *  - Court-circuit immédiat depuis `generateDrop` → la route émet un event SSE
+ *    `error` avec `code: 'CONTENT_REFUSED'`, distinct des pannes techniques.
+ *
+ * Le `refusalText` retourné par Claude n'est pas exposé à l'utilisateur (peut
+ * contenir des fragments de l'input refusé). On le garde en interne pour le log.
+ */
+export class ContentRefusedError extends Error {
+  constructor(
+    public readonly refusalText: string,
+    public readonly model: ModelTag,
+    public readonly stopReason: string
+  ) {
+    super('Content refused by model')
+    this.name = 'ContentRefusedError'
+  }
+}
+
 const MODEL_IDS: Record<ModelTag, string> = {
   opus: 'claude-opus-4-7',
   sonnet: 'claude-sonnet-4-6',
@@ -72,6 +101,10 @@ async function callAndValidate(
     ? `${userInput}\n\n[SYSTÈME — TENTATIVE PRÉCÉDENTE INVALIDE]\nLe précédent appel à generate_drop a violé le schema sur : ${zodFeedback.paths.join(', ')}.\nDétails : ${zodFeedback.details}.\nRecommence en respectant strictement toutes les bornes min/max et max-length du schema. Sois particulièrement vigilant sur la concision des champs courts (titles, tone, labels).`
     : userInput
 
+  // TODO Phase 2 : pré-filtre d'input (classification rapide via Haiku ou
+  // règles regex) AVANT cet appel, pour économiser un round-trip API sur les
+  // inputs évidemment hors charte. Pas dans ce commit (cf. PR fix refus).
+
   const response = await getClient().messages.create({
     model: MODEL_IDS[model],
     max_tokens: MAX_TOKENS,
@@ -83,7 +116,24 @@ async function callAndValidate(
 
   const toolUse = response.content.find(block => block.type === 'tool_use')
   if (!toolUse || toolUse.type !== 'tool_use') {
-    throw new Error(`No tool_use block in Claude response (model=${model})`)
+    // tool_choice était forcé → l'absence de tool_use est anormale. Deux causes
+    // possibles :
+    //  1. **Refus de contenu** : Claude termine son tour (`stop_reason: 'end_turn'`)
+    //     avec un bloc `text` expliquant son refus, sans utiliser le tool. C'est le
+    //     signal canonique avec `tool_choice` forcé.
+    //  2. **Panne technique** : autre stop_reason (max_tokens, stop_sequence,
+    //     pause_turn, null), ou pas de bloc text → on traite comme erreur API.
+    //
+    // Conservateur : en cas de doute → panne technique (pas un faux refus sur un
+    // vrai bug).
+    const textBlock = response.content.find(block => block.type === 'text')
+    const stopReason = response.stop_reason ?? 'unknown'
+    if (stopReason === 'end_turn' && textBlock && textBlock.type === 'text') {
+      throw new ContentRefusedError(textBlock.text, model, stopReason)
+    }
+    throw new Error(
+      `No tool_use block in Claude response (model=${model}, stop_reason=${stopReason})`
+    )
   }
 
   const parsed = DropContentSchema.safeParse(toolUse.input)
@@ -131,6 +181,13 @@ export async function generateDrop(userInput: string): Promise<GenerateResult> {
         return { content, modelUsed: model }
       } catch (err) {
         lastError = err
+
+        // Refus de contenu : pas de retry Zod (rien à valider), pas de fallback
+        // modèle (Sonnet refusera pour la même raison). Rethrow immédiat pour que
+        // la route SSE l'identifie via `instanceof ContentRefusedError`.
+        if (err instanceof ContentRefusedError) {
+          throw err
+        }
 
         if (err instanceof DropContentValidationError) {
           const paths = err.zodError.issues

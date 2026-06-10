@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { InputKind } from '@prisma/client'
-import { generateDrop } from '@/lib/ai/generate'
+import { ContentRefusedError, generateDrop } from '@/lib/ai/generate'
 import { generateImage } from '@/lib/ai/image'
 import { getCurrentUser } from '@/lib/auth-server'
 import { createDrop } from '@/lib/db/drops'
@@ -137,9 +137,22 @@ export async function POST(req: NextRequest) {
 
         send('done', { slug: drop.slug, url: `/d/${drop.slug}` })
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error'
-        console.error(`[api/generate] failed at step="${currentStep}":`, err)
-        send('error', { step: currentStep, message })
+        if (err instanceof ContentRefusedError) {
+          // Refus de contenu : warn (pas error) pour ne pas polluer les alertes
+          // panne. On NE logge PAS l'input brut (RGPD + le refus peut contenir
+          // des fragments sensibles dans `refusalText`) — juste longueur + modèle.
+          console.warn(
+            `[api/generate] content refused | model=${err.model} | inputLength=${body.rawInput.length} | stopReason=${err.stopReason} | timestamp=${new Date().toISOString()}`
+          )
+          send('error', {
+            code: 'CONTENT_REFUSED',
+            message: 'Ce sujet ne peut pas être transformé en Drop.',
+          })
+        } else {
+          const message = err instanceof Error ? err.message : 'Unknown error'
+          console.error(`[api/generate] failed at step="${currentStep}":`, err)
+          send('error', { step: currentStep, message })
+        }
       } finally {
         controller.close()
       }
